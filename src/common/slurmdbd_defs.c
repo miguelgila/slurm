@@ -550,6 +550,7 @@ extern Buf pack_slurmdbd_msg(slurmdbd_msg_t *req, uint16_t rpc_version)
 	case DBD_REMOVE_ACCOUNTS:
 	case DBD_REMOVE_ASSOCS:
 	case DBD_REMOVE_CLUSTERS:
+	case DBD_REMOVE_FEDERATIONS:
 	case DBD_REMOVE_QOS:
 	case DBD_REMOVE_RES:
 	case DBD_REMOVE_WCKEYS:
@@ -739,6 +740,7 @@ extern int unpack_slurmdbd_msg(slurmdbd_msg_t *resp,
 	case DBD_REMOVE_ACCOUNTS:
 	case DBD_REMOVE_ASSOCS:
 	case DBD_REMOVE_CLUSTERS:
+	case DBD_REMOVE_FEDERATIONS:
 	case DBD_REMOVE_QOS:
 	case DBD_REMOVE_RES:
 	case DBD_REMOVE_WCKEYS:
@@ -974,6 +976,8 @@ extern slurmdbd_msg_type_t str_2_slurmdbd_msg_type(char *msg_type)
 		return DBD_REMOVE_ASSOCS;
 	} else if (!xstrcasecmp(msg_type, "Remove Clusters")) {
 		return DBD_REMOVE_CLUSTERS;
+	} else if (!xstrcasecmp(msg_type, "Remove Federations")) {
+		return DBD_REMOVE_FEDERATIONS;
 	} else if (!xstrcasecmp(msg_type, "Remove Resources")) {
 		return DBD_REMOVE_RES;
 	} else if (!xstrcasecmp(msg_type, "Remove Users")) {
@@ -1389,6 +1393,12 @@ extern char *slurmdbd_msg_type_2_str(slurmdbd_msg_type_t msg_type, int get_enum)
 			return "DBD_REMOVE_CLUSTERS";
 		} else
 			return "Remove Clusters";
+		break;
+	case DBD_REMOVE_FEDERATIONS:
+		if (get_enum) {
+			return "DBD_REMOVE_FEDERATIONS";
+		} else
+			return "Remove Federations";
 		break;
 	case DBD_REMOVE_RES:
 		if (get_enum) {
@@ -2624,6 +2634,7 @@ extern void slurmdbd_free_cond_msg(dbd_cond_msg_t *msg,
 			my_destroy = slurmdb_destroy_cluster_cond;
 			break;
 		case DBD_GET_FEDERATIONS:
+		case DBD_REMOVE_FEDERATIONS:
 			my_destroy = slurmdb_destroy_federation_cond;
 			break;
 		case DBD_GET_JOBS_COND:
@@ -3028,6 +3039,7 @@ extern void slurmdbd_pack_cond_msg(dbd_cond_msg_t *msg,
 		my_function = slurmdb_pack_cluster_cond;
 		break;
 	case DBD_GET_FEDERATIONS:
+	case DBD_REMOVE_FEDERATIONS:
 		my_function = slurmdb_pack_federation_cond;
 		break;
 	case DBD_GET_JOBS_COND:
@@ -3094,6 +3106,7 @@ extern int slurmdbd_unpack_cond_msg(dbd_cond_msg_t **msg,
 		my_function = slurmdb_unpack_cluster_cond;
 		break;
 	case DBD_GET_FEDERATIONS:
+	case DBD_REMOVE_FEDERATIONS:
 		my_function = slurmdb_unpack_federation_cond;
 		break;
 	case DBD_GET_JOBS_COND:
