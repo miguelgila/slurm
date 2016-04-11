@@ -1241,7 +1241,7 @@ extern int init ( void )
 	/* Read and store the CCM configured partition name(s). */
 	if (run_in_daemon("slurmctld")) {
 		/* Get any CCM configuration information */
-		_ccm_get_config();
+		ccm_get_config();
 	}
 #endif
 	if (!slurmctld_primary && run_in_daemon("slurmctld")) {
@@ -1880,7 +1880,7 @@ extern int select_p_job_begin(struct job_record *job_ptr)
 		 * Create a thread to do setup activity before running the
 		 * CCM prolog for a CCM partition.
 		 */
-		if (_ccm_check_partitions(job_ptr)) {
+		if (ccm_check_partitions(job_ptr)) {
 			if (job_ptr->details == NULL) {
 				/* This info is required; abort the launch */
 				CRAY_ERR("CCM prolog missing job details, "
@@ -1899,7 +1899,7 @@ extern int select_p_job_begin(struct job_record *job_ptr)
 				debug("CCM job %u setting JOB_CONFIGURING",
 					job_ptr->job_id);
 				job_ptr->job_state |= JOB_CONFIGURING;
-				_spawn_ccm_thread(job_ptr, _ccm_begin);
+				spawn_ccm_thread(job_ptr, ccm_begin);
 			}
 		}
 	}
@@ -1911,7 +1911,7 @@ extern int select_p_job_ready(struct job_record *job_ptr)
 {
 	xassert(job_ptr);
 #if defined(HAVE_NATIVE_CRAY) && !defined(HAVE_CRAY_NETWORK)
-	if (_ccm_check_partitions(job_ptr)) {
+	if (ccm_check_partitions(job_ptr)) {
 		/* Delay CCM job launch until CCM prolog is done */
 		if (IS_JOB_CONFIGURING(job_ptr)) {
 			debug("CCM job %u job configuring set; job not ready",
@@ -1954,8 +1954,8 @@ extern int select_p_job_fini(struct job_record *job_ptr)
 #if defined(HAVE_NATIVE_CRAY) && !defined(HAVE_CRAY_NETWORK)
 	/* Create a thread to run the CCM epilog for a CCM partition */
 	if (ccm_config.ccm_enabled) {
-		if (_ccm_check_partitions(job_ptr)) {
-			_spawn_ccm_thread(job_ptr, _ccm_fini);
+		if (ccm_check_partitions(job_ptr)) {
+			spawn_ccm_thread(job_ptr, ccm_fini);
 		}
 	}
 #endif
