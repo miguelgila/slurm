@@ -5484,6 +5484,9 @@ extern void slurmdb_pack_update_object(slurmdb_update_object_t *object,
 	case SLURMDB_ADD_TRES:
 		my_function = slurmdb_pack_tres_rec;
 		break;
+	case SLURMDB_UPDATE_FEDS:
+		my_function = slurmdb_pack_federation_rec;
+		break;
 	case SLURMDB_UPDATE_NOTSET:
 	default:
 		error("pack: unknown type set in update_object: %d",
@@ -5563,6 +5566,10 @@ extern int slurmdb_unpack_update_object(slurmdb_update_object_t **object,
 	case SLURMDB_ADD_TRES:
 		my_function = slurmdb_unpack_tres_rec;
 		my_destroy = slurmdb_destroy_tres_rec;
+		break;
+	case SLURMDB_UPDATE_FEDS:
+		my_function = slurmdb_unpack_federation_rec;
+		my_destroy  = slurmdb_destroy_federation_rec;
 		break;
 	case SLURMDB_UPDATE_NOTSET:
 	default:
