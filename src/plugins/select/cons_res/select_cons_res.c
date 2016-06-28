@@ -193,7 +193,7 @@ static bool preempt_strict_order = false;
 struct select_nodeinfo {
 	uint16_t magic;		/* magic number */
 	uint16_t alloc_cpus;
-	uint32_t alloc_memory;
+	uint64_t alloc_memory;
 };
 
 extern select_nodeinfo_t *select_p_select_nodeinfo_alloc(void);
@@ -248,7 +248,8 @@ static void _dump_nodes(void)
 
 	for (i=0; i<select_node_cnt; i++) {
 		node_ptr = select_node_record[i].node_ptr;
-		info("node:%s cpus:%u c:%u s:%u t:%u mem:%u a_mem:%u state:%d",
+		info("node:%s cpus:%u c:%u s:%u t:%u mem:%"PRIu64" "
+		     "a_mem:%"PRIu64" state:%d",
 		     node_ptr->name,
 		     select_node_record[i].cpus,
 		     select_node_record[i].cores,
@@ -839,7 +840,7 @@ static int _add_job_to_res(struct job_record *job_ptr, int action)
 			if ((select_node_usage[i].alloc_memory >
 			     select_node_record[i].real_memory)) {
 				error("cons_res: node %s memory is "
-				      "overallocated (%u) for job %u",
+				      "overallocated (%"PRIu64") for job %u",
 				      node_ptr->name,
 				      select_node_usage[i].alloc_memory,
 				      job_ptr->job_id);
@@ -920,8 +921,8 @@ static job_resources_t *_create_job_resources(int node_cnt)
 	job_resrcs_ptr->cpu_array_value = xmalloc(sizeof(uint16_t) * node_cnt);
 	job_resrcs_ptr->cpus = xmalloc(sizeof(uint16_t) * node_cnt);
 	job_resrcs_ptr->cpus_used = xmalloc(sizeof(uint16_t) * node_cnt);
-	job_resrcs_ptr->memory_allocated = xmalloc(sizeof(uint32_t) * node_cnt);
-	job_resrcs_ptr->memory_used = xmalloc(sizeof(uint32_t) * node_cnt);
+	job_resrcs_ptr->memory_allocated = xmalloc(sizeof(uint64_t) * node_cnt);
+	job_resrcs_ptr->memory_used = xmalloc(sizeof(uint64_t) * node_cnt);
 	job_resrcs_ptr->nhosts = node_cnt;
 	return job_resrcs_ptr;
 }
@@ -1195,7 +1196,8 @@ static int _rm_job_from_res(struct part_res_record *part_record_ptr,
 			if (node_usage[i].alloc_memory <
 			    job->memory_allocated[n]) {
 				error("cons_res: node %s memory is "
-				      "under-allocated (%u-%u) for job %u",
+				      "under-allocated (%"PRIu64"-%"PRIu64") "
+				      "for job %u",
 				      node_ptr->name,
 				      node_usage[i].alloc_memory,
 				      job->memory_allocated[n],
@@ -1345,7 +1347,7 @@ static int _rm_job_from_one_node(struct job_record *job_ptr,
 
 		if (node_usage[i].alloc_memory < job->memory_allocated[n]) {
 			error("cons_res: node %s memory is underallocated "
-			      "(%u-%u) for job %u",
+			      "(%"PRIu64"-%"PRIu64") for job %u",
 			      node_ptr->name, node_usage[i].alloc_memory,
 			      job->memory_allocated[n], job_ptr->job_id);
 			node_usage[i].alloc_memory = 0;
@@ -2329,7 +2331,7 @@ extern int select_p_job_signal(struct job_record *job_ptr, int signal)
 extern int select_p_job_mem_confirm(struct job_record *job_ptr)
 {
 	int i_first, i_last, i, offset;
-	uint32_t avail_mem, lowest_mem = 0;
+	uint64_t avail_mem, lowest_mem = 0;
 
 	xassert(job_ptr);
 
@@ -2428,9 +2430,12 @@ extern int select_p_select_nodeinfo_pack(select_nodeinfo_t *nodeinfo,
 					 Buf buffer,
 					 uint16_t protocol_version)
 {
-	if (protocol_version >= SLURM_MIN_PROTOCOL_VERSION) {
+	if (protocol_version >= SLURM_17_02_PROTOCOL_VERSION) {
 		pack16(nodeinfo->alloc_cpus, buffer);
-		pack32(nodeinfo->alloc_memory, buffer);
+		pack64(nodeinfo->alloc_memory, buffer);
+	} else if (protocol_version >= SLURM_MIN_PROTOCOL_VERSION) {
+		pack16(nodeinfo->alloc_cpus, buffer);
+		pack32((uint32_t)nodeinfo->alloc_memory, buffer);
 	}
 
 	return SLURM_SUCCESS;
@@ -2445,9 +2450,14 @@ extern int select_p_select_nodeinfo_unpack(select_nodeinfo_t **nodeinfo,
 	nodeinfo_ptr = select_p_select_nodeinfo_alloc();
 	*nodeinfo = nodeinfo_ptr;
 
-	if (protocol_version >= SLURM_MIN_PROTOCOL_VERSION) {
+	if (protocol_version >= SLURM_17_02_PROTOCOL_VERSION) {
 		safe_unpack16(&nodeinfo_ptr->alloc_cpus, buffer);
-		safe_unpack32(&nodeinfo_ptr->alloc_memory, buffer);
+		safe_unpack64(&nodeinfo_ptr->alloc_memory, buffer);
+	} else if (protocol_version >= SLURM_MIN_PROTOCOL_VERSION) {
+		uint32_t tmp_mem;
+		safe_unpack16(&nodeinfo_ptr->alloc_cpus, buffer);
+		safe_unpack32(&tmp_mem, buffer);
+		nodeinfo_ptr->alloc_memory = tmp_mem;
 	}
 
 	return SLURM_SUCCESS;
@@ -2603,7 +2613,7 @@ extern int select_p_select_nodeinfo_get(select_nodeinfo_t *nodeinfo,
 {
 	int rc = SLURM_SUCCESS;
 	uint16_t *uint16 = (uint16_t *) data;
-	uint32_t *uint32 = (uint32_t *) data;
+	uint64_t *uint64 = (uint64_t *) data;
 	char **tmp_char = (char **) data;
 	select_nodeinfo_t **select_nodeinfo = (select_nodeinfo_t **) data;
 
@@ -2635,7 +2645,7 @@ extern int select_p_select_nodeinfo_get(select_nodeinfo_t *nodeinfo,
 		*tmp_char = NULL;
 		break;
 	case SELECT_NODEDATA_MEM_ALLOC:
-		*uint32 = nodeinfo->alloc_memory;
+		*uint64 = nodeinfo->alloc_memory;
 		break;
 	default:
 		error("Unsupported option %d for get_nodeinfo.", dinfo);
