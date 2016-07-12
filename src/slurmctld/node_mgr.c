@@ -410,9 +410,9 @@ extern int load_all_node_state ( bool state_only )
 			safe_unpack16 (&core_spec_cnt, buffer);
 			safe_unpack16 (&threads,     buffer);
 			safe_unpack32 (&tmp_mem, buffer);
-			real_memory = (uint64_t) tmp_mem;
+			real_memory = xlate_mem_old2new(tmp_mem);
 			safe_unpack32 (&tmp_mem, buffer);
-			mem_spec_limit = (uint64_t) tmp_mem;
+			mem_spec_limit = xlate_mem_old2new(tmp_mem);
 			safe_unpack32 (&tmp_disk,    buffer);
 			safe_unpack32 (&reason_uid,  buffer);
 			safe_unpack_time (&reason_time, buffer);
@@ -442,9 +442,9 @@ extern int load_all_node_state ( bool state_only )
 			safe_unpack16 (&core_spec_cnt, buffer);
 			safe_unpack16 (&threads,     buffer);
 			safe_unpack32 (&tmp_mem, buffer);
-			real_memory = (uint64_t) tmp_mem;
+			real_memory = xlate_mem_old2new(tmp_mem);
 			safe_unpack32 (&tmp_mem, buffer);
-			mem_spec_limit = (uint64_t) tmp_mem;
+			mem_spec_limit = xlate_mem_old2new(tmp_mem);
 			safe_unpack32 (&tmp_disk,    buffer);
 			safe_unpack32 (&reason_uid,  buffer);
 			safe_unpack_time (&reason_time, buffer);
@@ -1043,7 +1043,7 @@ static void _pack_node (struct node_record *dump_node_ptr, Buf buffer,
 			pack16(dump_node_ptr->config_ptr->sockets, buffer);
 			pack16(dump_node_ptr->config_ptr->cores, buffer);
 			pack16(dump_node_ptr->config_ptr->threads, buffer);
-			pack32((uint32_t)dump_node_ptr->config_ptr->real_memory,
+			pack32(xlate_mem_new2old(dump_node_ptr->config_ptr->real_memory),
 			       buffer);
 			pack32(dump_node_ptr->config_ptr->tmp_disk, buffer);
 		} else {
@@ -1054,7 +1054,8 @@ static void _pack_node (struct node_record *dump_node_ptr, Buf buffer,
 			pack16(dump_node_ptr->sockets, buffer);
 			pack16(dump_node_ptr->cores, buffer);
 			pack16(dump_node_ptr->threads, buffer);
-			pack32((uint32_t)dump_node_ptr->real_memory, buffer);
+			pack32(xlate_mem_new2old(dump_node_ptr->real_memory),
+			       buffer);
 			pack32(dump_node_ptr->tmp_disk, buffer);
 #ifndef HAVE_BG
 		}
@@ -1062,11 +1063,13 @@ static void _pack_node (struct node_record *dump_node_ptr, Buf buffer,
 		packstr(dump_node_ptr->mcs_label, buffer);
 		pack32(dump_node_ptr->owner, buffer);
 		pack16(dump_node_ptr->core_spec_cnt, buffer);
-		pack32((uint32_t)dump_node_ptr->mem_spec_limit, buffer);
+		pack32(xlate_mem_new2old(dump_node_ptr->mem_spec_limit),
+		       buffer);
 		packstr(dump_node_ptr->cpu_spec_list, buffer);
 
 		pack32(dump_node_ptr->cpu_load, buffer);
-		pack32((uint32_t)dump_node_ptr->free_mem, buffer);
+		pack32(xlate_mem_new2old(dump_node_ptr->free_mem),
+		       buffer);
 		pack32(dump_node_ptr->config_ptr->weight, buffer);
 		pack32(dump_node_ptr->reason_uid, buffer);
 
@@ -1123,7 +1126,7 @@ static void _pack_node (struct node_record *dump_node_ptr, Buf buffer,
 			pack16(dump_node_ptr->config_ptr->sockets, buffer);
 			pack16(dump_node_ptr->config_ptr->cores, buffer);
 			pack16(dump_node_ptr->config_ptr->threads, buffer);
-			pack32((uint32_t)dump_node_ptr->config_ptr->real_memory,
+			pack32(xlate_mem_new2old(dump_node_ptr->config_ptr->real_memory),
 			       buffer);
 			pack32(dump_node_ptr->config_ptr->tmp_disk, buffer);
 		} else {
@@ -1134,18 +1137,21 @@ static void _pack_node (struct node_record *dump_node_ptr, Buf buffer,
 			pack16(dump_node_ptr->sockets, buffer);
 			pack16(dump_node_ptr->cores, buffer);
 			pack16(dump_node_ptr->threads, buffer);
-			pack32((uint32_t)dump_node_ptr->real_memory, buffer);
+			pack32(xlate_mem_new2old(dump_node_ptr->real_memory),
+			       buffer);
 			pack32(dump_node_ptr->tmp_disk, buffer);
 #ifndef HAVE_BG
 		}
 #endif
 		pack32(dump_node_ptr->owner, buffer);
 		pack16(dump_node_ptr->core_spec_cnt, buffer);
-		pack32((uint32_t)dump_node_ptr->mem_spec_limit, buffer);
+		pack32(xlate_mem_new2old(dump_node_ptr->mem_spec_limit),
+		       buffer);
 		packstr(dump_node_ptr->cpu_spec_list, buffer);
 
 		pack32(dump_node_ptr->cpu_load, buffer);
-		pack32((uint32_t)dump_node_ptr->free_mem, buffer);
+		pack32(xlate_mem_new2old(dump_node_ptr->free_mem),
+		       buffer);
 		pack32(dump_node_ptr->config_ptr->weight, buffer);
 		pack32(dump_node_ptr->reason_uid, buffer);
 
