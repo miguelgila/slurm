@@ -317,6 +317,7 @@
 #define xstrchr			slurm_xstrchr
 #define xstrcmp			slurm_xstrcmp
 #define xstrcasecmp		slurm_xstrcasecmp
+#define xstrcasestr		slurm_xstrcasestr
 
 
 /* slurm_protocol_defs.[ch] functions */
