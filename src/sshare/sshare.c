@@ -100,6 +100,7 @@ int main (int argc, char **argv)
 	memset(&req_msg, 0, sizeof(shares_request_msg_t));
 	slurm_conf_init(NULL);
 	log_init("sshare", opts, SYSLOG_FACILITY_DAEMON, NULL);
+  log_command_execution_syslog(argc, argv);
 
 	while ((opt_char = getopt_long(argc, argv, "aA:ehlM:no:pPqUu:t:vVm",
 			long_options, &option_index)) != -1) {

@@ -68,6 +68,7 @@ int main (int argc, char **argv)
 	priority_factors_response_msg_t *resp_msg = NULL;
 	log_options_t opts = LOG_OPTS_STDERR_ONLY ;
 	uint16_t show_flags = 0;
+        log_command_execution_syslog(argc, argv);
 
 	slurm_conf_init(NULL);
 	log_init(xbasename(argv[0]), opts, SYSLOG_FACILITY_USER, NULL);

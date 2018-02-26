@@ -129,6 +129,7 @@ int main(int argc, char **argv)
 	command_name = argv[0];
 	slurm_conf_init(NULL);
 	log_init("scontrol", opts, SYSLOG_FACILITY_DAEMON, NULL);
+  log_command_execution_syslog(argc, argv);
 
 	if (slurmctld_conf.fed_params &&
 	    strstr(slurmctld_conf.fed_params, "fed_display"))
@@ -1789,7 +1790,7 @@ static void _update_it(int argc, char **argv)
 				"(i.e. bgl000[0-3]),");
 		}
 		fprintf(stderr, "\"PartitionName\", \"Reservation\", "
-			"\"JobId\", \"SlurmctldDebug\" , \"PowerCap\"" 
+			"\"JobId\", \"SlurmctldDebug\" , \"PowerCap\""
 			"or \"Layouts\"\n");
 	}
 

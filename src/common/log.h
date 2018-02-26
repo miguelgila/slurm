@@ -268,4 +268,13 @@ void	debug3(const char *, ...) __attribute__ ((format (printf, 1, 2)));
 void	debug4(const char *, ...) __attribute__ ((format (printf, 1, 2)));
 void	debug5(const char *, ...) __attribute__ ((format (printf, 1, 2)));
 
+void	dump_cleanup_list(void);
+void	fatal_add_cleanup(void (*proc) (void *), void *context);
+void	fatal_add_cleanup_job(void (*proc) (void *), void *context);
+void	fatal_remove_cleanup(void (*proc) (void *context), void *context);
+void	fatal_remove_cleanup_job(void (*proc) (void *context), void *context);
+void	fatal_cleanup(void);
+
+void log_command_execution_syslog(int argc, char ** argv);
+
 #endif /* !_LOG_H */

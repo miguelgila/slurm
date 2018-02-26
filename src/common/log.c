@@ -79,6 +79,11 @@
 #include "src/common/xmalloc.h"
 #include "src/common/xstring.h"
 
+#include <syslog.h>
+#include <stdlib.h>
+#include <pwd.h>
+#include <libgen.h>
+
 #ifndef LINEBUFSIZE
 #  define LINEBUFSIZE 256
 #endif
@@ -1243,4 +1248,32 @@ extern int get_log_level(void)
 	level = MAX(log->opt.syslog_level, log->opt.logfile_level);
 	level = MAX(level, log->opt.stderr_level);
 	return level;
+}
+
+/* Undocumented, CSCS only: logs to syslog the execution of a command */
+void log_command_execution_syslog(int argc, char ** argv){
+
+  uid_t uid = geteuid();
+  struct passwd *pw = getpwuid(uid);
+  char *cmdstring;
+
+  if (getenv("SLURM_LOG_ACTIONS")) {
+    int i, strsize = 0;
+    for (i=1; i<argc; i++) {
+      strsize += strlen(argv[i]);
+      if (argc > i+1)
+        strsize++;
+    }
+    cmdstring = malloc(strsize);
+    cmdstring[0] = '\0';
+    for (i=1; i<argc; i++) {
+      strcat(cmdstring, argv[i]);
+      if (argc > i+1)
+        strcat(cmdstring, " ");
+    }
+    setlogmask (LOG_UPTO (LOG_NOTICE));
+    openlog (basename(argv[0]), LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
+    syslog (LOG_NOTICE, "User: %s, command: %s %s", pw->pw_name, basename(argv[0]), cmdstring);
+    closelog ();
+  }
 }

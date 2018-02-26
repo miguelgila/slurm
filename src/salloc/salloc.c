@@ -195,6 +195,7 @@ int main(int argc, char **argv)
 	slurm_allocation_callbacks_t callbacks;
 	ListIterator iter_req, iter_resp;
 
+        log_command_execution_syslog(argc, argv);
 	slurm_conf_init(NULL);
 	debug_flags = slurm_get_debug_flags();
 	log_init(xbasename(argv[0]), logopt, 0, NULL);

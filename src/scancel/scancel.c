@@ -105,6 +105,7 @@ main (int argc, char **argv)
 {
 	log_options_t log_opts = LOG_OPTS_STDERR_ONLY ;
 	int rc = 0;
+  log_command_execution_syslog(argc, argv);
 
 	slurm_conf_init(NULL);
 	log_init (xbasename(argv[0]), log_opts, SYSLOG_FACILITY_DAEMON, NULL);
@@ -774,7 +775,7 @@ _cancel_job_id (void *ci)
 		     (error_code == ESLURM_INVALID_JOB_ID)) &&
 		    (cancel_info->sig == SIGKILL)) {
 			error_code = 0;	/* Ignore error if job done */
-		}	
+		}
 	}
 
 	/* Purposely free the struct passed in here, so the caller doesn't have
