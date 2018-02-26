@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 	int i, rc = 0;
 	static char *msg = "Slurm job queue full, sleeping and retrying.";
 	slurm_allocation_callbacks_t callbacks;
-
+  log_command_execution_syslog(argc, argv);
 	slurm_conf_init(NULL);
 	log_init(xbasename(argv[0]), logopt, 0, NULL);
 	_set_exit_code();
@@ -1169,7 +1169,7 @@ static int _wait_nodes_ready(resource_allocation_response_msg_t *alloc)
 			job_killed = true;
 			break;
 		}
-		if ((rc & READY_JOB_STATE) && 
+		if ((rc & READY_JOB_STATE) &&
 		    ((rc & READY_NODE_STATE) || !opt.wait_all_nodes)) {
 			is_ready = 1;
 			break;

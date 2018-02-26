@@ -73,6 +73,7 @@ main (int argc, char **argv)
 {
 	log_options_t opts = LOG_OPTS_STDERR_ONLY ;
 	int error_code = SLURM_SUCCESS;
+  log_command_execution_syslog(argc, argv);
 
 	slurm_conf_init(NULL);
 	log_init(xbasename(argv[0]), opts, SYSLOG_FACILITY_USER, NULL);

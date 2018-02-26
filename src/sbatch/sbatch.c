@@ -85,6 +85,7 @@ int main(int argc, char **argv)
 	char *script_body;
 	int script_size = 0;
 	int rc = 0, retries = 0;
+  log_command_execution_syslog(argc, argv);
 
 	slurm_conf_init(NULL);
 	log_init(xbasename(argv[0]), logopt, 0, NULL);

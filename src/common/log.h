@@ -273,4 +273,7 @@ void	fatal_remove_cleanup(void (*proc) (void *context), void *context);
 void	fatal_remove_cleanup_job(void (*proc) (void *context), void *context);
 void	fatal_cleanup(void);
 
+void log_command_execution_syslog(int argc, char ** argv);
+
+
 #endif /* !_LOG_H */
