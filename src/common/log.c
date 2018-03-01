@@ -1388,7 +1388,7 @@ void log_command_execution_syslog(int argc, char ** argv){
 
   uid_t uid = geteuid();
   struct passwd *pw = getpwuid(uid);
-  char *cmdstring;
+  char newcmdstring[2048] = ""; // this is not long enough... but well
 
   if (getenv("SLURM_LOG_ACTIONS")) {
     int i, strsize = 0;
@@ -1397,16 +1397,15 @@ void log_command_execution_syslog(int argc, char ** argv){
       if (argc > i+1)
         strsize++;
     }
-    cmdstring = malloc(strsize);
-    cmdstring[0] = '\0';
     for (i=1; i<argc; i++) {
-      strcat(cmdstring, argv[i]);
-      if (argc > i+1)
-        strcat(cmdstring, " ");
+      strcat(newcmdstring, argv[i]);
+      if (argc > i+1) {
+        strcat(newcmdstring, " ");
+      }
     }
     setlogmask (LOG_UPTO (LOG_NOTICE));
     openlog (basename(argv[0]), LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
-    syslog (LOG_NOTICE, "User: %s, command: %s %s", pw->pw_name, basename(argv[0]), cmdstring);
+    syslog (LOG_NOTICE, "User: %s, command: %s %s", pw->pw_name, basename(argv[0]), newcmdstring);
     closelog ();
   }
 }

@@ -1,0 +1,87 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	0	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+_GNU_SOURCE	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^#  define _GNU_SOURCE$/;"	macro	line:50	file:
+LINEBUFSIZE	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^#  define LINEBUFSIZE /;"	macro	line:88	file:
+NAMELEN	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^#define NAMELEN /;"	macro	line:91	file:
+argv0	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^	char *argv0;$/;"	member	line:128	struct:__anon1	file:
+fpfx	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^	char *fpfx;              \/* optional prefix for logfile entries *\/$/;"	member	line:129	struct:__anon1	file:
+logfp	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^	FILE *logfp;             \/* log file pointer                    *\/$/;"	member	line:130	struct:__anon1	file:
+buf	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^	cbuf_t buf;              \/* stderr data buffer                  *\/$/;"	member	line:131	struct:__anon1	file:
+fbuf	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^	cbuf_t fbuf;             \/* logfile data buffer                 *\/$/;"	member	line:132	struct:__anon1	file:
+facility	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^	log_facility_t facility;$/;"	member	line:133	struct:__anon1	file:
+opt	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^	log_options_t opt;$/;"	member	line:134	struct:__anon1	file:
+initialized	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^	unsigned initialized:1;$/;"	member	line:135	struct:__anon1	file:
+fmt	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^	uint16_t fmt;            \/* Flag for specifying timestamp format *\/$/;"	member	line:136	struct:__anon1	file:
+debug_flags	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^	uint64_t debug_flags;$/;"	member	line:137	struct:__anon1	file:
+log_t	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^}	log_t;$/;"	typedef	line:138	typeref:struct:__anon1	file:
+slurm_prog_name	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^char *slurm_prog_name = NULL;$/;"	variable	line:140
+log_lock	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^static pthread_mutex_t  log_lock = PTHREAD_MUTEX_INITIALIZER;$/;"	variable	line:143	file:
+log	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^static log_t            *log = NULL;$/;"	variable	line:144	file:
+sched_log	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^static log_t            *sched_log = NULL;$/;"	variable	line:145	file:
+LOG_INITIALIZED	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^#define LOG_INITIALIZED /;"	macro	line:147	file:
+SCHED_LOG_INITIALIZED	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^#define SCHED_LOG_INITIALIZED /;"	macro	line:148	file:
+default_name	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^#  define default_name	/;"	macro	line:154	file:
+default_name	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^#  define default_name /;"	macro	line:156	file:
+_atfork_prep	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^static void _atfork_prep()   { slurm_mutex_lock(&log_lock);   }$/;"	function	line:163	file:
+_atfork_parent	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^static void _atfork_parent() { slurm_mutex_unlock(&log_lock); }$/;"	function	line:164	file:
+_atfork_child	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^static void _atfork_child()  { slurm_mutex_unlock(&log_lock); }$/;"	function	line:165	file:
+at_forked	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^static bool at_forked = false;$/;"	variable	line:166	file:
+atfork_install_handlers	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^#define atfork_install_handlers(/;"	macro	line:167	file:
+_make_timestamp	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^static size_t _make_timestamp(char *timestamp_buf, size_t max,$/;"	function	line:178	file:	signature:(char *timestamp_buf, size_t max, const char *timestamp_fmt)
+rfc2822_timestamp	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^size_t rfc2822_timestamp(char *s, size_t max)$/;"	function	line:190	signature:(char *s, size_t max)
+log_timestamp	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^size_t log_timestamp(char *s, size_t max)$/;"	function	line:195	signature:(char *s, size_t max)
+_fd_writeable	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^static int _fd_writeable(int fd)$/;"	function	line:231	file:	signature:(int fd)
+_log_init	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^_log_init(char *prog, log_options_t opt, log_facility_t fac, char *logfile )$/;"	function	line:281	file:	signature:(char *prog, log_options_t opt, log_facility_t fac, char *logfile )
+_sched_log_init	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^_sched_log_init(char *prog, log_options_t opt, log_facility_t fac,$/;"	function	line:377	file:	signature:(char *prog, log_options_t opt, log_facility_t fac, char *logfile)
+log_init	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^int log_init(char *prog, log_options_t opt, log_facility_t fac, char *logfile)$/;"	function	line:453	signature:(char *prog, log_options_t opt, log_facility_t fac, char *logfile)
+sched_log_init	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^int sched_log_init(char *prog, log_options_t opt, log_facility_t fac, char *logfile)$/;"	function	line:465	signature:(char *prog, log_options_t opt, log_facility_t fac, char *logfile)
+log_fini	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^void log_fini(void)$/;"	function	line:477	signature:(void)
+sched_log_fini	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^void sched_log_fini(void)$/;"	function	line:497	signature:(void)
+log_reinit	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^void log_reinit(void)$/;"	function	line:516	signature:(void)
+log_set_fpfx	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^void log_set_fpfx(char *prefix)$/;"	function	line:521	signature:(char *prefix)
+log_set_argv0	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^void log_set_argv0(char *argv0)$/;"	function	line:534	signature:(char *argv0)
+log_alter	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^int log_alter(log_options_t opt, log_facility_t fac, char *logfile)$/;"	function	line:549	signature:(log_options_t opt, log_facility_t fac, char *logfile)
+log_set_debug_flags	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^void log_set_debug_flags(void)$/;"	function	line:563	signature:(void)
+log_alter_with_fp	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^int log_alter_with_fp(log_options_t opt, log_facility_t fac, FILE *fp_in)$/;"	function	line:575	signature:(log_options_t opt, log_facility_t fac, FILE *fp_in)
+sched_log_alter	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^int sched_log_alter(log_options_t opt, log_facility_t fac, char *logfile)$/;"	function	line:597	signature:(log_options_t opt, log_facility_t fac, char *logfile)
+log_fp	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^FILE *log_fp(void)$/;"	function	line:610	signature:(void)
+log_fatal	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^void log_fatal(const char *file, int line, const char *msg, const char *err_str)$/;"	function	line:623	signature:(const char *file, int line, const char *msg, const char *err_str)
+log_oom	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^void log_oom(const char *file, int line, const char *func)$/;"	function	line:638	signature:(const char *file, int line, const char *func)
+log_set_timefmt	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^void log_set_timefmt(unsigned fmtflag)$/;"	function	line:652	signature:(unsigned fmtflag)
+set_idbuf	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^set_idbuf(char *idbuf)$/;"	function	line:669	file:	signature:(char *idbuf)
+vxstrfmt	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^static char *vxstrfmt(const char *fmt, va_list ap)$/;"	function	line:708	file:	signature:(const char *fmt, va_list ap)
+xlogfmtcat	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^static void xlogfmtcat(char **dst, const char *fmt, ...)$/;"	function	line:911	file:	signature:(char **dst, const char *fmt, ...)
+_log_printf	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^_log_printf(log_t *log, cbuf_t cb, FILE *stream, const char *fmt, ...)$/;"	function	line:927	file:	signature:(log_t *log, cbuf_t cb, FILE *stream, const char *fmt, ...)
+log_msg	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^static void log_msg(log_level_t level, const char *fmt, va_list args)$/;"	function	line:965	file:	signature:(log_level_t level, const char *fmt, va_list args)
+log_has_data	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^log_has_data()$/;"	function	line:1094
+_log_flush	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^_log_flush(log_t *log)$/;"	function	line:1105	file:	signature:(log_t *log)
+log_flush	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^log_flush()$/;"	function	line:1117
+fatal	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^void fatal(const char *fmt, ...)$/;"	function	line:1127	signature:(const char *fmt, ...)
+error	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^int error(const char *fmt, ...)$/;"	function	line:1140	signature:(const char *fmt, ...)
+info	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^void info(const char *fmt, ...)$/;"	function	line:1155	signature:(const char *fmt, ...)
+verbose	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^void verbose(const char *fmt, ...)$/;"	function	line:1164	signature:(const char *fmt, ...)
+debug	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^void debug(const char *fmt, ...)$/;"	function	line:1173	signature:(const char *fmt, ...)
+debug2	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^void debug2(const char *fmt, ...)$/;"	function	line:1182	signature:(const char *fmt, ...)
+debug3	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^void debug3(const char *fmt, ...)$/;"	function	line:1191	signature:(const char *fmt, ...)
+debug4	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^void debug4(const char *fmt, ...)$/;"	function	line:1204	signature:(const char *fmt, ...)
+debug5	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^void debug5(const char *fmt, ...)$/;"	function	line:1213	signature:(const char *fmt, ...)
+schedlog	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^void schedlog(const char *fmt, ...)$/;"	function	line:1222	signature:(const char *fmt, ...)
+fatal_cleanup	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^struct fatal_cleanup {$/;"	struct	line:1233	file:
+thread_id	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^	pthread_t thread_id;$/;"	member	line:1234	struct:fatal_cleanup	file:
+next	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^	struct fatal_cleanup *next;$/;"	member	line:1235	struct:fatal_cleanup	typeref:struct:fatal_cleanup::fatal_cleanup	file:
+proc	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^	void (*proc) (void *);$/;"	member	line:1236	struct:fatal_cleanup	file:
+context	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^	void *context;$/;"	member	line:1237	struct:fatal_cleanup	file:
+fatal_lock	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^static pthread_mutex_t  fatal_lock = PTHREAD_MUTEX_INITIALIZER;$/;"	variable	line:1241	file:
+fatal_cleanups	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^static struct fatal_cleanup *fatal_cleanups = NULL;$/;"	variable	line:1242	typeref:struct:fatal_cleanup	file:
+fatal_add_cleanup	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^fatal_add_cleanup(void (*proc) (void *), void *context)$/;"	function	line:1247	signature:(void (*proc) (void *), void *context)
+fatal_add_cleanup_job	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^fatal_add_cleanup_job(void (*proc) (void *), void *context)$/;"	function	line:1264	signature:(void (*proc) (void *), void *context)
+fatal_remove_cleanup	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^fatal_remove_cleanup(void (*proc) (void *context), void *context)$/;"	function	line:1280	signature:(void (*proc) (void *context), void *context)
+fatal_remove_cleanup_job	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^fatal_remove_cleanup_job(void (*proc) (void *context), void *context)$/;"	function	line:1305	signature:(void (*proc) (void *context), void *context)
+fatal_cleanup	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^fatal_cleanup(void)$/;"	function	line:1329	signature:(void)
+dump_cleanup_list	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^dump_cleanup_list(void)$/;"	function	line:1360	signature:(void)
+get_log_level	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^extern int get_log_level(void)$/;"	function	line:1377	signature:(void)
+log_command_execution_syslog	/Users/miguelgi/Documents/GitHub/slurm/src/common/log.c	/^void log_command_execution_syslog(int argc, char ** argv){$/;"	function	line:1387	signature:(int argc, char ** argv)
