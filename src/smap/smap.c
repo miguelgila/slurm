@@ -91,7 +91,8 @@ int main(int argc, char **argv)
 	int end = 0;
 	int i;
 	int rc;
-
+  log_command_execution_syslog(argc, argv);
+  
 	slurm_conf_init(NULL);
 	log_init(xbasename(argv[0]), opts, SYSLOG_FACILITY_DAEMON, NULL);
 	parse_command_line(argc, argv);

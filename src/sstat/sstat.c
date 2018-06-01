@@ -214,7 +214,7 @@ int main(int argc, char **argv)
 	error("The sstat command is not supported on IBM BlueGene systems");
 	return 1;
 #endif
-
+  log_command_execution_syslog(argc, argv);
 	slurm_conf_init(NULL);
 	print_fields_list = list_create(NULL);
 	print_fields_itr = list_iterator_create(print_fields_list);

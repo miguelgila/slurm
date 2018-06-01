@@ -122,7 +122,7 @@ int sattach(int argc, char **argv)
 	message_thread_state_t *mts;
 	client_io_t *io;
 	char *hosts, *launch_type;
-
+  log_command_execution_syslog(argc, argv);
 	log_init(xbasename(argv[0]), logopt, 0, NULL);
 	_set_exit_code();
 	if (initialize_and_process_args(argc, argv) < 0) {

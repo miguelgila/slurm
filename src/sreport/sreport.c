@@ -119,6 +119,7 @@ main (int argc, char **argv)
 	input_field_count = 0;
 	local_flag        = false;
 	quiet_flag        = 0;
+  log_command_execution_syslog(argc, argv);
 	slurm_conf_init(NULL);
 	log_init("sreport", opts, SYSLOG_FACILITY_DAEMON, NULL);
 

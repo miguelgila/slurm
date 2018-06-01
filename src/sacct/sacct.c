@@ -142,7 +142,7 @@ int main(int argc, char **argv)
 		SACCT_USAGE
 	} op;
 	int rc = 0;
-
+  log_command_execution_syslog(argc, argv);
 	slurm_conf_init(NULL);
 	sacct_init();
 	parse_command_line(argc, argv);

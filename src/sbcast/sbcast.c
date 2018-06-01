@@ -71,6 +71,7 @@ struct bcast_parameters params;	/* program parameters */
 int main(int argc, char **argv)
 {
 	int rc;
+  log_command_execution_syslog(argc, argv);
 	log_options_t opts = LOG_OPTS_STDERR_ONLY;
 	log_init("sbcast", opts, SYSLOG_FACILITY_DAEMON, NULL);
 

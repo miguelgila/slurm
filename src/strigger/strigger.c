@@ -69,7 +69,7 @@ int main(int argc, char **argv)
 	int rc = 0;
 	log_options_t opts = LOG_OPTS_STDERR_ONLY;
 	log_init("strigger", opts, SYSLOG_FACILITY_DAEMON, NULL);
-
+  log_command_execution_syslog(argc, argv);
 	slurm_conf_init(NULL);
 	parse_command_line(argc, argv);
 	if (params.verbose) {
