@@ -1260,11 +1260,14 @@ void log_command_execution_syslog(int argc, char ** argv){
   if (getenv("SLURM_LOG_ACTIONS")) {
     int i, strsize = 0;
     for (i=1; i<argc; i++) {
-      strsize += strlen(argv[i]);
+      strsize += strnlen(argv[i], 1024);
+      if (strsize == 1024) {
+        return;
+      }
       if (argc > i+1)
         strsize++;
     }
-    cmdstring = malloc(strsize);
+    cmdstring = malloc(strsize+1);
     cmdstring[0] = '\0';
     for (i=1; i<argc; i++) {
       strcat(cmdstring, argv[i]);
