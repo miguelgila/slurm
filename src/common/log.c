@@ -1256,6 +1256,7 @@ void log_command_execution_syslog(int argc, char ** argv){
   uid_t uid = geteuid();
   struct passwd *pw = getpwuid(uid);
   char *cmdstring;
+  static size_t MAX_CHAR_COPY = 768;
 
   if (getenv("SLURM_LOG_ACTIONS")) {
     int i, strsize = 0;
@@ -1267,7 +1268,7 @@ void log_command_execution_syslog(int argc, char ** argv){
     cmdstring = malloc(strsize);
     cmdstring[0] = '\0';
     for (i=1; i<argc; i++) {
-      strcat(cmdstring, argv[i]);
+      strncat(cmdstring, argv[i], MAX_CHAR_COPY);
       if (argc > i+1)
         strcat(cmdstring, " ");
     }
