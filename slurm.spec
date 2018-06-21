@@ -1,6 +1,6 @@
 Name:		slurm
 Version:	17.11.7.cscs
-%global rel	1
+%global rel	3
 Release:	%{rel}%{?dist}
 Summary:	Slurm Workload Manager
 
