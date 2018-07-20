@@ -1255,7 +1255,7 @@ void log_command_execution_syslog(int argc, char ** argv){
   int i = 1;
   uid_t uid = geteuid();
   struct passwd *pw = getpwuid(uid);
-  char buffer[512] = "";
+  char buffer[256] = "";
 
   if (getenv("SLURM_LOG_ACTIONS")) {
     for (i=1; i<argc; i++) {
