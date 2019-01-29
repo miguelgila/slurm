@@ -101,6 +101,8 @@ int main(int argc, char **argv)
 
 	slurm_conf_init(NULL);
 	log_init(xbasename(argv[0]), logopt, 0, NULL);
+	if (slurmctld_conf.log_command_to_syslog)
+		log_command_execution_syslog(argc, argv);
 
 	_set_exit_code();
 	if (spank_init_allocator() < 0) {

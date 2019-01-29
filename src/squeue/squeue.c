@@ -82,6 +82,8 @@ main (int argc, char **argv)
 		log_alter(opts, SYSLOG_FACILITY_USER, NULL);
 	}
 	max_line_size = _get_window_width( );
+	if (slurmctld_conf.log_command_to_syslog)
+		log_command_execution_syslog(argc, argv);
 
 	if (params.clusters)
 		working_cluster_rec = list_peek(params.clusters);

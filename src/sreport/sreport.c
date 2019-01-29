@@ -126,6 +126,8 @@ main (int argc, char **argv)
 	slurm_conf_init(NULL);
 	log_init("sreport", opts, SYSLOG_FACILITY_DAEMON, NULL);
 
+	if (slurmctld_conf.log_command_to_syslog)
+		log_command_execution_syslog(argc, argv);
 	/* Check to see if we are running a supported accounting plugin */
 	temp = slurm_get_accounting_storage_type();
 	if (xstrcasecmp(temp, "accounting_storage/slurmdbd")

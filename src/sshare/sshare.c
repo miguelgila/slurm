@@ -101,6 +101,8 @@ int main (int argc, char **argv)
 	slurm_conf_init(NULL);
 	log_init("sshare", opts, SYSLOG_FACILITY_DAEMON, NULL);
 
+	if (slurmctld_conf.log_command_to_syslog)
+		log_command_execution_syslog(argc, argv);
 	while ((opt_char = getopt_long(argc, argv, "aA:ehlM:no:pPqUu:t:vVm",
 			long_options, &option_index)) != -1) {
 		switch (opt_char) {

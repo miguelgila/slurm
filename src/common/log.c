@@ -1462,3 +1462,50 @@ extern int get_log_level(void)
 	level = MAX(level, log->opt.stderr_level);
 	return level;
 }
+
+/* Logs a single message to SYSLOG at INFO level
+* There is no pre-defined function to log only at SYSLOG and not stderr */
+void syslog_info(const char *fmt, ...)
+{
+	va_list ap;
+
+	/* Make sure we save the original log levels */
+	log_level_t orig_syslog_level = log->opt.syslog_level;
+	log_level_t orig_stderr_level = log->opt.stderr_level;
+	log->opt.syslog_level = LOG_LEVEL_INFO;
+	log->opt.stderr_level = LOG_LEVEL_QUIET;
+
+	va_start(ap, fmt);
+	_log_msg(LOG_LEVEL_INFO, false, fmt, ap);
+
+	va_end(ap);
+	/* Restore the original log levels */
+	log->opt.syslog_level = orig_syslog_level;
+	log->opt.stderr_level = orig_stderr_level;
+}
+
+/* Logs to SYSLOG a string with the command that was used
+ * and the username that did it. */
+void log_command_execution_syslog(int argc, char ** argv){
+	int i = 1;
+	uid_t uid = geteuid();             /* This is always successful */
+	static const int BUFFER_SIZE = 512;
+	char * buffer = NULL;
+
+	struct passwd *pw = NULL;
+	char * user = NULL;
+
+	if ((pw = getpwuid(uid)))
+		user = xstrdup(pw->pw_name);
+
+	buffer = xstrdup(" ");
+	for (i=1; i<argc; i++) {
+		if ( strlen(buffer) < BUFFER_SIZE ) {
+			xstrncat(buffer, argv[i], BUFFER_SIZE-strlen(buffer)-1);
+			xstrcat(buffer, " ");
+		} else
+			break;
+	}
+	syslog_info("User: %s, command: %s %s", user, xbasename(argv[0]), buffer);
+	xfree(buffer);
+}

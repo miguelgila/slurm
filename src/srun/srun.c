@@ -186,7 +186,8 @@ int srun(int ac, char **av)
 	logopt.stderr_level += debug_level;
 	log_init(xbasename(av[0]), logopt, 0, NULL);
 	_set_exit_code();
-
+	if (slurmctld_conf.log_command_to_syslog)
+        log_command_execution_syslog(ac, av);
 	if (slurm_select_init(0) != SLURM_SUCCESS)
 		fatal( "failed to initialize node selection plugin" );
 

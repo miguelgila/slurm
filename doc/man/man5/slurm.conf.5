@@ -1302,6 +1302,12 @@ including the microseconds, the daemon's process ID and the current thread name
 and ID.
 
 .TP
+\fBLogCommandToSyslog\fR
+If set to "YES" then each slurm command will log to syslog when it starts
+which username started it, and wich parameters were used.
+The default value is "NO".
+
+.TP
 \fBMailDomain\fR
 Domain name to qualify usernames if email address is not explicitly given
 with the "--mail-user" option. If unset, the local MTA will need to qualify

@@ -164,6 +164,8 @@ int main(int argc, char **argv)
 	slurm_conf_init(NULL);
 	sacct_init();
 	parse_command_line(argc, argv);
+	if (slurmctld_conf.log_command_to_syslog)
+		log_command_execution_syslog(argc, argv);
 
 	/* What are we doing? Requests for help take highest priority,
 	 * but then check for illogical switch combinations.

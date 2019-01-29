@@ -393,6 +393,7 @@ s_p_options_t slurm_conf_options[] = {
 	{"VSizeFactor", S_P_UINT16},
 	{"WaitTime", S_P_UINT16},
 	{"X11Parameters", S_P_STRING},
+	{"LogCommandToSyslog", S_P_BOOLEAN},
 
 	{"DownNodes", S_P_ARRAY, _parse_downnodes, _destroy_downnodes},
 	{"FrontendName", S_P_ARRAY, _parse_frontend, destroy_frontend},
@@ -2931,7 +2932,6 @@ free_slurm_conf (slurm_ctl_conf_t *ctl_conf_ptr, bool purge_node_hash)
 	xfree (ctl_conf_ptr->unkillable_program);
 	xfree (ctl_conf_ptr->version);
 	xfree (ctl_conf_ptr->x11_params);
-
 	if (purge_node_hash)
 		_free_name_hashtbl();
 }
@@ -5004,6 +5004,10 @@ _validate_and_set_defaults(slurm_ctl_conf_t *conf, s_p_hashtbl_t *hashtbl)
 		 */
 		conf->prolog_epilog_timeout = NO_VAL16;
 	}
+
+	if (!s_p_get_boolean((bool *) &conf->log_command_to_syslog,
+				"LogCommandToSyslog", hashtbl))
+	conf->log_command_to_syslog = DEFAULT_LOG_COMMAND_SYSLOG;
 
 	xfree(default_storage_type);
 	xfree(default_storage_loc);

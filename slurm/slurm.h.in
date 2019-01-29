@@ -2632,6 +2632,7 @@ typedef struct slurm_ctl_conf {
 	char *accounting_storage_type; /* accounting storage type */
 	char *accounting_storage_user; /* accounting storage user */
 	uint16_t acctng_store_job_comment; /* send job comment to accounting */
+	uint16_t log_command_to_syslog; /* Log command call to syslog */
 	void *acct_gather_conf; /* account gather config */
 	char *acct_gather_energy_type; /* energy accounting type */
 	char *acct_gather_profile_type; /* profile accounting type */

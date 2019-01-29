@@ -81,6 +81,8 @@ int main(int argc, char **argv)
 	slurm_conf_init(NULL);
 	route_init(NULL);
 	parse_command_line(argc, argv);
+	if (slurmctld_conf.log_command_to_syslog)
+        log_command_execution_syslog(argc, argv);
 	if (params.verbose) {
 		opts.stderr_level += params.verbose;
 		log_alter(opts, SYSLOG_FACILITY_DAEMON, NULL);

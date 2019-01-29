@@ -268,6 +268,8 @@ int main(int argc, char **argv)
 #endif
 
 	slurm_conf_init(NULL);
+	if (slurmctld_conf.log_command_to_syslog)
+        log_command_execution_syslog(argc, argv);
 	print_fields_list = list_create(NULL);
 	print_fields_itr = list_iterator_create(print_fields_list);
 

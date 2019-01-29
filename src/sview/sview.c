@@ -1417,6 +1417,8 @@ int main(int argc, char **argv)
 		setenv("SLURM_BITSTR_LEN", "128", 1);	/* More array info */
 	slurm_conf_init(NULL);
 	log_init(argv[0], lopts, SYSLOG_FACILITY_USER, NULL);
+	if (slurmctld_conf.log_command_to_syslog)
+        log_command_execution_syslog(argc, argv);
 	load_defaults();
 	cluster_flags = slurmdb_setup_cluster_flags();
 	cluster_dims = slurmdb_setup_cluster_dims();

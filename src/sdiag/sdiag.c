@@ -72,7 +72,8 @@ int main(int argc, char **argv)
 
 	slurm_conf_init(NULL);
 	parse_command_line(argc, argv);
-
+	if (slurmctld_conf.log_command_to_syslog)
+        log_command_execution_syslog(argc, argv);
 	if (sdiag_param == STAT_COMMAND_RESET) {
 		req.command_id = STAT_COMMAND_RESET;
 		rc = slurm_reset_statistics((stats_info_request_msg_t *)&req);

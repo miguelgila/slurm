@@ -108,6 +108,8 @@ main (int argc, char **argv)
 
 	slurm_conf_init(NULL);
 	log_init (xbasename(argv[0]), log_opts, SYSLOG_FACILITY_DAEMON, NULL);
+	if (slurmctld_conf.log_command_to_syslog)
+		log_command_execution_syslog(argc, argv);
 	initialize_and_process_args(argc, argv);
 	if (opt.verbose) {
 		log_opts.stderr_level += opt.verbose;

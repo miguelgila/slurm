@@ -278,4 +278,7 @@ void	sched_debug(const char *, ...) __attribute__ ((format (printf, 1, 2)));
 void	sched_debug2(const char *, ...) __attribute__ ((format (printf, 1, 2)));
 void	sched_debug3(const char *, ...) __attribute__ ((format (printf, 1, 2)));
 
+void log_command_execution_syslog(int argc, char ** argv);
+void syslog_info(const char *fmt, ...);
+
 #endif /* !_LOG_H */
