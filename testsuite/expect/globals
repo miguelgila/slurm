@@ -225,6 +225,12 @@ cset max_stress_tasks 4
 #
 cset sleep_error_message "(invalid time interval)|(bad character in argument)|(usage: sleep seconds)"
 
+#
+# The poll interval (how many seconds to sleep between polls in functions like
+# wait_for_file and wait_for_job)
+#
+cset poll_interval 1
+
 # Force LANG, as the expect tests aren't localized
 set ::env(LANG)          "en_US.UTF-8"
 
@@ -251,6 +257,15 @@ set slash                "/"
 set whitespace		 "\[ \t\n\r\f\v\]+"
 set alpha_numeric_nodelist "$alpha_numeric_under\\\[?\[$alpha_numeric_comma\]?\\\]?"
 set controlmachine_regex "\[a-zA-Z0-9,\-\.\]+"
+# Any characters except ( , : newline
+set no_delim             "\[^(,:\r\n\]"
+set no_delim_slash       "\[^(,:/\r\n\]"
+# The first group matches GRES name
+# The second **optional** group matches GRES type.
+# The third group matches GRES count.
+# Test out the regex here: https://regex101.com/r/FlNYKM/7
+set gres_regex "($no_delim_slash*):($no_delim*)?:?($no_delim*)"
+
 #
 # Cache SlurmUser to check for SuperUser requests
 #
@@ -576,7 +591,7 @@ proc print_header { test_id } {
 # Purpose:  Wait for the specified file to exist and have a
 #           non-zero size. Note that if JobFileAppend=0 is
 #           configured, a file can exist and be purged then
-#           be re-created.
+#           be re-created. Polls every $poll_interval seconds.
 #
 # Returns: A non-zero return code indicates a failure.
 #
@@ -585,15 +600,16 @@ proc print_header { test_id } {
 ################################################################
 
 proc wait_for_file { file_name } {
-	global bin_sleep max_file_delay
+	global bin_sleep max_file_delay poll_interval
 
-	for {set my_delay 0} {$my_delay <= $max_file_delay} {incr my_delay} {
+	for {set my_delay 0} {$my_delay <= $max_file_delay} \
+	                     {set my_delay [expr $my_delay + $poll_interval]} {
 		if {[file exists $file_name]} {
 #			Add small delay for I/O buffering
 			exec $bin_sleep 1
 			return 0
 		}
-		exec $bin_sleep 1
+		exec $bin_sleep $poll_interval
 #
 #		Expect may fail to load current NFS info.
 #		Use the ls command to load current info.
@@ -617,7 +633,7 @@ proc wait_for_file { file_name } {
 # Proc: wait_for_job
 #
 # Purpose:  Wait for a previously submitted Slurm job to reach
-# the desired state, exponential back-off 1 to 10 seconds
+# the desired state. Polls every $poll_interval seconds.
 #
 # Returns: A non-zero return code indicates a failure.
 #
@@ -636,7 +652,7 @@ proc wait_for_file { file_name } {
 ################################################################
 
 proc wait_for_job { job_id desired_state } {
-	global scontrol max_job_state_delay
+	global scontrol max_job_state_delay poll_interval
 
 	# First verify that desired_state is supported
 	switch $desired_state {
@@ -655,7 +671,6 @@ proc wait_for_job { job_id desired_state } {
 		return 1
 	}
 
-	set sleep_time  1
 	set my_delay    0
 	while 1 {
 		set fd [open "|$scontrol -o show job $job_id"]
@@ -724,12 +739,8 @@ proc wait_for_job { job_id desired_state } {
 			return 1
 		}
 
-		exec sleep $sleep_time
-		set my_delay [expr $my_delay + $sleep_time]
-		set sleep_time  [expr $sleep_time * 2]
-		if { $sleep_time > 10 } {
-			set sleep_time 10
-		}
+		exec sleep $poll_interval
+		set my_delay [expr $my_delay + $poll_interval]
 	}
 }
 
@@ -737,8 +748,8 @@ proc wait_for_job { job_id desired_state } {
 #
 # Proc: wait_for_account_done
 #
-# Purpose:  Cancel jobs on and wait for them to be finished in account(s) given,
-#           exponential back-off 1 to 10 seconds
+# Purpose:  Cancel jobs on and wait for them to be finished in account(s) given.
+#           Polls every $poll_interval seconds.
 #
 # Returns: A non-zero return code indicates a failure.
 #
@@ -750,7 +761,7 @@ proc wait_for_job { job_id desired_state } {
 ################################################################
 
 proc wait_for_account_done { accounts } {
-	global scancel squeue max_job_state_delay alpha_numeric_colon
+	global scancel squeue max_job_state_delay alpha_numeric_colon poll_interval
 
 	if { $accounts == "" } {
 		log_error "wait_for_account_done: no account given"
@@ -771,7 +782,6 @@ proc wait_for_account_done { accounts } {
 		}
 	}
 
-	set sleep_time  1
 	set my_delay    0
 	while 1 {
 		set found 0
@@ -797,12 +807,8 @@ proc wait_for_account_done { accounts } {
 			return 1
 		}
 
-		exec sleep $sleep_time
-		set my_delay [expr $my_delay + $sleep_time]
-		set sleep_time  [expr $sleep_time * 2]
-		if { $sleep_time > 10 } {
-			set sleep_time 10
-		}
+		exec sleep $poll_interval
+		set my_delay [expr $my_delay + $poll_interval]
 	}
 	log_user 1
 	return 0
@@ -812,8 +818,8 @@ proc wait_for_account_done { accounts } {
 #
 # Proc: wait_for_part_done
 #
-# Purpose:  Cancel jobs on and wait for them to be finished in partition given,
-#           exponential back-off 1 to 10 seconds
+# Purpose:  Cancel jobs on and wait for them to be finished in partition given.
+#           Polls every $poll_interval seconds.
 #
 # Returns: A non-zero return code indicates a failure.
 #
@@ -825,7 +831,7 @@ proc wait_for_account_done { accounts } {
 ################################################################
 
 proc wait_for_part_done { part } {
-	global scancel squeue max_job_state_delay alpha_numeric_colon
+	global scancel squeue max_job_state_delay alpha_numeric_colon poll_interval
 
 	if { $part == "" } {
 		log_error "wait_for_part_done: no partition given"
@@ -843,7 +849,6 @@ proc wait_for_part_done { part } {
 		}
 	}
 
-	set sleep_time  1
 	set my_delay    0
 	while 1 {
 		set found 0
@@ -869,12 +874,8 @@ proc wait_for_part_done { part } {
 			return 1
 		}
 
-		exec sleep $sleep_time
-		set my_delay [expr $my_delay + $sleep_time]
-		set sleep_time  [expr $sleep_time * 2]
-		if { $sleep_time > 10 } {
-			set sleep_time 10
-		}
+		exec sleep $poll_interval
+		set my_delay [expr $my_delay + $poll_interval]
 	}
 	log_user 1
 	return 0
@@ -884,8 +885,8 @@ proc wait_for_part_done { part } {
 #
 # Proc: wait_for_step
 #
-# Purpose: Wait for a job step to be found, exponential back-off
-# 1 to 10 seconds
+# Purpose: Wait for a job step to be found.
+#          Polls every $poll_interval seconds.
 #
 # Returns: A non-zero return code indicates a failure.
 #
@@ -895,8 +896,7 @@ proc wait_for_part_done { part } {
 ################################################################
 
 proc wait_for_step { step_id } {
-	global scontrol max_job_state_delay
-	set sleep_time  1
+	global scontrol max_job_state_delay poll_interval
 	set my_delay    0
 	while 1 {
 		set fd [open "|$scontrol -o show step $step_id"]
@@ -913,13 +913,9 @@ proc wait_for_step { step_id } {
 			return 1
 		}
 
-		send_user "Step $step_id not done yet waiting for $sleep_time seconds\n"
-		exec sleep $sleep_time
-		set my_delay [expr $my_delay + $sleep_time]
-		set sleep_time  [expr $sleep_time * 2]
-		if { $sleep_time > 10 } {
-			set sleep_time 10
-		}
+		send_user "Step $step_id not done yet waiting for $poll_interval seconds\n"
+		exec sleep $poll_interval
+		set my_delay [expr $my_delay + $poll_interval]
 	}
 }
 
@@ -928,31 +924,22 @@ proc wait_for_step { step_id } {
 # Proc: wait_for_all_jobs
 #
 # Purpose:  Wait for previously submitted Slurm jobs to finish of a
-# certain name, if incr_sleep is set exponential back-off 1 to 10 seconds
+#           certain name. Iterates every $poll_interval seconds.
 #
-# Returns: A non-zero return code indicates a failure.
+# Returns: -1 on failure, 0 if all jobs are done, and the remaining job count
+#          if not all jobs are done after $wait_for_all_jobs_iterations
+#          iterations.
 #
 # Input: job_name   -- The name of job to wait for.
-#        incr_sleep -- To exponentially back-off or not
-#
 #
 ################################################################
-# Wait up to 900 seconds for all jobs to terminate
-# Return 0 if all jobs done, remainin job count otherwise
-proc wait_for_all_jobs { job_name incr_sleep } {
-	global scancel squeue bin_sleep wait_for_all_jobs_iterations
+proc wait_for_all_jobs { job_name } {
+	global scancel squeue bin_sleep wait_for_all_jobs_iterations poll_interval
 
 	set matches 0
-	set my_delay    0
-	set last_matches 0
 	set timeout 30
 
-	if {$incr_sleep == 0} {
-		set sleep_time  0.2
-	} else {
-		set sleep_time  1
-	}
-	send_user "Waiting for all jobs to terminate\n"
+	log_info "Waiting for all jobs to terminate"
 	for {set inx 0} {$inx < $wait_for_all_jobs_iterations} {incr inx} {
 		log_user 0
 		set matches 0
@@ -966,7 +953,7 @@ proc wait_for_all_jobs { job_name incr_sleep } {
 				set matches -1
 			}
 			timeout {
-				send_user "No response from squeue\n"
+				log_info "No response from squeue"
 				set matches -1
 			}
 			eof {
@@ -975,26 +962,12 @@ proc wait_for_all_jobs { job_name incr_sleep } {
 		}
 		log_user 1
 		if {$matches == 0} {
-			send_user "All jobs complete\n"
+			log_info "All jobs complete"
 			break
 		}
 		if {$matches > 0} {
-			send_user "  $matches jobs remaining\n"
-#			Moab can slow throughput down a lot,
-#			so don't return here
-#			if {$matches == $last_matches} {
-#				send_user "Running jobs hung\n"
-#				break
-#			}
-#			set last_matches $matches
-			exec sleep $sleep_time
-			set my_delay [expr $my_delay + $sleep_time]
-			if { $incr_sleep } {
-				set sleep_time  [expr $sleep_time * 2]
-				if { $sleep_time > 10 } {
-					set sleep_time 10
-				}
-			}
+			log_info "  $matches jobs remaining"
+			exec sleep $poll_interval
 		}
 		if {$matches == -1} {
 			break
@@ -1004,7 +977,7 @@ proc wait_for_all_jobs { job_name incr_sleep } {
 		spawn $scancel -n $job_name
 		expect {
 			timeout {
-				send_user "No response from scancel\n"
+				log_warning "No response from scancel"
 			}
 			eof {
 				wait
@@ -1573,7 +1546,7 @@ proc test_mem_affinity { } {
 
 ################################################################
 #
-# Proc: test_track_wckey
+# Proc: test_track_wckey_slurmctld
 #
 # Purpose: Determine if we track workload characterization keys.
 # This is based upon the value of TrackWCKey in the slurm.conf.
@@ -1581,7 +1554,7 @@ proc test_mem_affinity { } {
 # Returns value of TrackWCKey
 #
 ################################################################
-proc test_track_wckey { } {
+proc test_track_wckey_slurmctld { } {
 	global scontrol number
 
 	log_user 0
@@ -1670,6 +1643,45 @@ proc test_enforce_limits { } {
 	log_user 1
 
 	return $enforce_limits
+}
+
+################################################################
+#
+# Proc: test_allow_spec_resources
+#
+# Purpose: Return value of AllowSpecResources
+#
+# Returns 1 if AllowSpecResources is set, 0 if not and 2 in case of error
+# It also sets the global variable exit_code to 1 in case of error.
+#
+################################################################
+proc test_allow_spec_resc { } {
+	global exit_code number scontrol
+
+	log_user 0
+	set allow_spec_resc 2
+	spawn $scontrol show config
+	expect {
+		-re "AllowSpecResourcesUsage *= ($number)" {
+			set allow_spec_resc $expect_out(1,string)
+			exp_continue
+		}
+		timeout {
+			log_error "scontrol show config time out"
+			set exit_code 1
+		}
+		eof {
+			wait
+		}
+	}
+
+	if {$allow_spec_resc == 2} {
+		log_error "AllowSpecResourcesUsage not found in scontrol show config"
+		set exit_code 1
+	}
+
+	log_user 1
+	return $allow_spec_resc
 }
 
 ################################################################
@@ -3583,7 +3595,7 @@ proc job_submit_all_partitions { } {
 # Proc: wait_for_node
 #
 # Purpose: Wait for a certain number of nodes in a partition to
-#          reach a certain state.
+#          reach a certain state. Polls every $poll_interval seconds.
 #
 # Returns: 1 on failure.
 #
@@ -3594,7 +3606,7 @@ proc wait_for_node {partition state num_nodes} {
 	set cnt       0
 	set rt        0
 
-	global sinfo number
+	global sinfo number poll_interval
 
 	while {$done != 1 && $wait_time < 3} {
 
@@ -3619,7 +3631,7 @@ proc wait_for_node {partition state num_nodes} {
 			set done 1
 		} else {
 			send_user "partition $partition has $cnt nodes idle and we want $num_nodes\n"
-			sleep 3
+			sleep $poll_interval
 			incr wait_time 1
 		}
 	}
@@ -3750,23 +3762,32 @@ proc get_srun_ports { } {
 #
 # Proc: available_nodes_hostnames
 #
-# Purpose: Get all idle nodes in the system
+# Purpose: Get all available nodes in the system.
 #
-# Returns: idle nodes
+# Input: partition -- to only return nodes of an specific partition
+#        also_power_save -- to include POWERING_DOWN and POWER_DOWN
+#                           nodes
+#
+# Returns: idle nodes, and also_power_save nodes if specified
 #
 #####################################################################
 
-proc available_nodes_hostnames { partition } {
+proc available_nodes_hostnames { partition {also_power_save false} } {
 
 	global sinfo alpha_numeric_nodelist exit_code
 
 	log_user 0
 	set idle_nodelist ""
 	set sep ""
-	if {[string compare $partition ""] == 0} {
-		spawn $sinfo -tidle -h -o%N
+	if {$also_power_save} {
+		set avail_states "idle,power_down,powering_down"
 	} else {
-		spawn $sinfo -tidle -h -o%N -p$partition
+		set avail_states "idle"
+	}
+	if {[string compare $partition ""] == 0} {
+		spawn $sinfo -t$avail_states -h -o%N
+	} else {
+		spawn $sinfo -t$avail_states -h -o%N -p$partition
 	}
 	expect {
 		-re "($alpha_numeric_nodelist)" {
@@ -4716,51 +4737,86 @@ proc get_craynetwork_count {} {
 #
 ################################################################
 proc get_gpu_count { node_count } {
-	global number sinfo
+	get_gres_count $node_count "gpu"
+}
+
+################################################################
+#
+# Proc: get_gres_count
+#
+# For a given node count and GRES name, returns number of GRES per node on
+# those "node_count" nodes with the highest GRES counts
+# For example: node1 has 1 GPU, node2 has 2 GPUs and node3 has 3 GPUs
+# [get_gres_count 1 "gpu"] returns 3 (i.e. 1 node 3 GPUs)
+# [get_gres_count 2 "gpu"] returns 2 (i.e. 2 nodes have at least 2 GPUs each)
+# [get_gres_count 3 "gpu"] returns 1 (i.e. 3 nodes have at least 1 GPU each)
+#
+################################################################
+proc get_gres_count { node_count gres_name } {
+	global sinfo gres_regex
 	set fini 0
 	set node_inx 0
 	set def_part [default_partition]
-	set alpha_numeric_colon_paren "\[a-zA-Z0-9_\\(\\),\:\-\]+"
+	# The first group lets us know if we started a new line (i.e. new node).
+	# The second, third, and fourth groups in $gres_regex match a GRES
+	# name, type, and count.
+	set regex "(GRES=|,)$gres_regex"
 
 	if {$node_count <= 0} {
 		return 0
 	}
 
+	set line_count 0
+
 	log_user 0
 	spawn $sinfo -N -p$def_part -oGRES=%G -h
 	expect {
-		-re "GRES=($alpha_numeric_colon_paren)" {
+		-re $regex {
 			set count 0
-			set parts [split $expect_out(1,string) ",/"]
-			while 1 {
-				set gpu_found [lsearch $parts "gpu*"]
-				if { $gpu_found == -1 } break
-				set parts2 [split [lindex $parts $gpu_found] ":(/"]
+			set line $expect_out(1,string)
+			set name $expect_out(2,string)
+			# Assume typed GRES of format gpu:1080:5 to start out
+			set type $expect_out(3,string)
+			set count $expect_out(4,string)
 
-				set col [lsearch -regexp $parts2 ^$number$]
-				if { $col == -1 } {
-					incr count
-				} else {
-					set count [expr $count + [lindex $parts2 $col]]
+			if {$line == "GRES="} {
+				if {$node_inx > 0} {
+					lappend gres_count $line_count
+					set line_count 0
 				}
-				set parts [lreplace $parts $gpu_found $gpu_found]
+				incr node_inx
+			}
+
+			# Skip all GRES of different names
+			if {$name != $gres_name} {
+				exp_continue
+			}
+
+			if {$count == ""} {
+				# Now assume GRES format gpu:5
+				set count $type
 			}
 			if { $count } {
-				incr node_inx
-				lappend gpu_count $count
+				incr line_count $count
 			}
+
 			exp_continue
 		}
 		eof {
 			wait
 		}
 	}
+
+	# Add the last node line's GRES
+	lappend gres_count $line_count
+
 	log_user 1
 
 	if {$node_inx < $node_count} {
 		return 0
 	}
-	set count [lindex [lsort -decreasing -integer $gpu_count] [expr $node_count - 1]]
+
+	set count [lindex [lsort -decreasing -integer $gres_count] [expr $node_count - 1]]
 	return $count
 }
 
@@ -4910,49 +4966,7 @@ proc get_gpu_socket_count { gpu_cnt sockets_per_node } {
 #
 ################################################################
 proc get_mps_count { node_count } {
-	global number sinfo
-	set fini 0
-	set node_inx 0
-	set def_part [default_partition]
-	set alpha_numeric_colon_paren "\[a-zA-Z0-9_\\(\\),\:\-\]+"
-
-	log_user 0
-	spawn $sinfo -N -p$def_part -oGRES=%G -h
-	expect {
-		-re "GRES=($alpha_numeric_colon_paren)" {
-			set mps_count 0
-			set parts [split $expect_out(1,string) ",/"]
-			while 1 {
-				set mps_found [lsearch $parts "mps*"]
-				if { $mps_found == -1 } break
-
-				set parts2 [split [lindex $parts $mps_found] ":(/"]
-				set col [lsearch -regexp $parts2 ^$number$]
-				if { $col == -1 } {
-					incr mps_count
-				} else {
-					set mps_count [expr $mps_count + [lindex $parts2 $col]]
-				}
-				set parts [lreplace $parts $mps_found $mps_found]
-			}
-
-			if {$mps_count > 0} {
-				lappend mps_per_node $mps_count
-				incr node_inx
-			}
-			exp_continue
-		}
-		eof {
-			wait
-		}
-	}
-	log_user 1
-
-	if {$node_inx < $node_count} {
-		return 0
-	}
-	set count [lindex [lsort -decreasing -integer $mps_per_node] [expr $node_count - 1]]
-	return $count
+	get_gres_count $node_count "mps"
 }
 
 ################################################################
@@ -5378,36 +5392,43 @@ proc create_part { part_name num_nodes_in } {
 #
 # Proc: get_node_config
 #
-# Determine the configuration of a node containing at least 1 GPU
+# Determine the configuration of a node containing at least desired_gpus, one
+# gpu id desired_gpus is not specified.
 #
 # Set the following global variables
 # cores_per_socket - Cores per socet
 # cpus_per_socket - CPUs per socket
 # cpus_tot - Total count of CPUs on the node
 # exit_code - Set to 1 on failure
+# gpu_tot - GPUs in the node
 # hostname - Name of the node referenced
 # mem_size - Real memory size
 # sockets_per_node - Sockets per node
 #
+# Returns true if node with the desired_gpus was found, false otherwise.
+#
 ################################################################
-proc get_node_config { } {
+proc get_node_config { {desired_gpus 1} } {
 	global cores_per_socket cpus_per_socket sockets_per_node mem_size
-	global hostname exit_code max_job_delay number srun scontrol
-	global alpha_numeric_nodelist bin_rm
+	global hostname exit_code max_job_delay number srun scontrol gpu_tot
+	global alpha_numeric_nodelist bin_rm gres_regex
 
+	set node_found false
 	set cpus_tot 1
 	set file_in  "test_gloabls"
 	set hostname "UNKNOWN"
 	set mem_size 1
 	set sockets_per_node 1
 	set cpus_per_socket 1
+	set gpu_tot 0
 	make_bash_script $file_in "$scontrol show node \$SLURM_JOB_NODELIST"
 	set timeout $max_job_delay
 	log_user 0
-	set srun_pid [spawn $srun --gres=gpu:1 -n1 -t1 ./$file_in]
+	set srun_pid [spawn $srun --gres=gpu:$desired_gpus -n1 -t1 ./$file_in]
 	expect {
 		-re "NodeName=($alpha_numeric_nodelist)" {
 			set hostname $expect_out(1,string)
+			set node_found true
 			exp_continue
 		}
 		-re "CoresPerSocket=($number)" {
@@ -5416,6 +5437,28 @@ proc get_node_config { } {
 		}
 		-re "CPUTot=($number)" {
 			set cpus_tot $expect_out(1,string)
+			exp_continue
+		}
+		-re "(Gres=|,)$gres_regex" {
+			set count 0
+			set line $expect_out(1,string)
+			set name $expect_out(2,string)
+			# Assume typed GRES of format gpu:1080:5 to start out
+			set type $expect_out(3,string)
+			set count $expect_out(4,string)
+
+			# Skip all GRES of different names
+			if {$name != "gpu"} {
+				exp_continue
+			}
+			if {$count == ""} {
+				# Now assume GRES format gpu:5
+				set count $type
+			}
+			if { $count } {
+				incr gpu_tot $count
+			}
+
 			exp_continue
 		}
 		-re "RealMemory=($number)" {
@@ -5438,4 +5481,61 @@ proc get_node_config { } {
 	exec $bin_rm -f $file_in
 	log_user 1
 	set cpus_per_socket [expr $cpus_tot / $sockets_per_node]
+	return $node_found
+}
+
+proc check_reason { job_id reason } {
+	global squeue
+
+	set found 0
+	spawn $squeue -j $job_id --noheader -o "%r"
+	expect {
+		-re "$reason" {
+			set found 1
+			exp_continue
+		}
+		timeout {
+			send_user "\nFAILURE: squeue not responding\n"
+		}
+		eof {
+			wait
+		}
+	}
+
+	if {$found == 0} {
+		log_error "Job $job_id should have a wait reason of $reason"
+	}
+	return $found
+}
+
+proc compile_against_libslurm { test_prog use_full use_valgrind } {
+	global slurm_dir bin_cc src_dir build_dir
+
+	if {$use_full} {
+		set libfile "libslurmfull.so"
+	} else {
+		set libfile "libslurm.so"
+	}
+
+	if [file exists $slurm_dir/lib64/slurm/$libfile] {
+		set libdir "lib64"
+	} else {
+		set libdir "lib"
+	}
+
+	if {$use_full} {
+		set libline "$slurm_dir/$libdir/slurm"
+		set libfile "slurmfull"
+	} else {
+		set libline "$slurm_dir/$libdir"
+		set libfile "slurm"
+	}
+
+	set build_cmd "$bin_cc ${test_prog}.c -g -pthread -o $test_prog -I$src_dir -I$build_dir -I$slurm_dir/include -Wl,-rpath=$libline -L$libline -l$libfile"
+
+	if {$use_valgrind} {
+		set build_cmd "$build_cmd -DUSING_VALGRIND"
+	}
+	send_user "$build_cmd\n"
+	eval exec $build_cmd
 }

@@ -670,7 +670,7 @@ static int arg_set_ckpt_interval(slurm_opt_t *opt, const char *arg)
 }
 static char *arg_get_ckpt_interval(slurm_opt_t *opt)
 {
-	int tmp;
+	int tmp = 0;
 	char time_str[32];
 
 	if (!opt->sbatch_opt && !opt->srun_opt)
@@ -3042,7 +3042,7 @@ static int arg_set_test_only(slurm_opt_t *opt, const char *arg)
 }
 static char *arg_get_test_only(slurm_opt_t *opt)
 {
-	bool tmp;
+	bool tmp = false;
 
 	if (!opt->sbatch_opt && !opt->srun_opt)
 		return xstrdup("invalid-context");
@@ -3434,7 +3434,7 @@ static int arg_set_wait_all_nodes(slurm_opt_t *opt, const char *arg)
 }
 static char *arg_get_wait_all_nodes(slurm_opt_t *opt)
 {
-	uint16_t tmp;
+	uint16_t tmp = NO_VAL16;
 
 	if (!opt->salloc_opt && !opt->sbatch_opt)
 		return xstrdup("invalid-context");
@@ -4056,4 +4056,26 @@ extern bool slurm_option_get_next_set(slurm_opt_t *opt, char **name,
 		return true;
 	}
 	return false;
+}
+
+extern void validate_memory_options(slurm_opt_t *opt)
+{
+	if ((slurm_option_set_by_cli(LONG_OPT_MEM) +
+	     slurm_option_set_by_cli(LONG_OPT_MEM_PER_CPU) +
+	     slurm_option_set_by_cli(LONG_OPT_MEM_PER_GPU)) > 1) {
+		fatal("--mem, --mem-per-cpu, and --mem-per-gpu are mutually exclusive.");
+	} else if (slurm_option_set_by_cli(LONG_OPT_MEM)) {
+		slurm_option_reset(opt, "mem-per-cpu");
+		slurm_option_reset(opt, "mem-per-gpu");
+	} else if (slurm_option_set_by_cli(LONG_OPT_MEM_PER_CPU)) {
+		slurm_option_reset(opt, "mem");
+		slurm_option_reset(opt, "mem-per-gpu");
+	} else if (slurm_option_set_by_cli(LONG_OPT_MEM_PER_GPU)) {
+		slurm_option_reset(opt, "mem");
+		slurm_option_reset(opt, "mem-per-cpu");
+	} else if ((slurm_option_set_by_env(LONG_OPT_MEM) +
+		    slurm_option_set_by_env(LONG_OPT_MEM_PER_CPU) +
+		    slurm_option_set_by_env(LONG_OPT_MEM_PER_GPU)) > 1) {
+		fatal("SLURM_MEM_PER_CPU, SLURM_MEM_PER_GPU, and SLURM_MEM_PER_NODE are mutually exclusive.");
+	}
 }

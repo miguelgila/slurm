@@ -3720,7 +3720,7 @@ extern int step_partial_comp(step_complete_msg_t *req, uid_t uid,
 		hl = _step_range_to_hostlist(step_ptr,
 			req->range_first, req->range_last);
 		node_list = hostlist_ranged_string_xmalloc(hl);
-		debug2("partitial switch release for %pS, nodes %s",
+		debug2("partial switch release for %pS, nodes %s",
 			step_ptr, node_list);
 		switch_g_job_step_part_comp(
 			step_ptr->switch_job, node_list);
@@ -3863,7 +3863,7 @@ extern int step_epilog_complete(struct job_record  *job_ptr,
 	struct node_record *node_ptr;
 
 	if (!switch_g_part_comp()) {
-		/* don't bother with partitial completions */
+		/* don't bother with partial completions */
 		return 0;
 	}
 	if ((node_ptr = find_node_record(node_name)) == NULL)
@@ -3888,7 +3888,7 @@ extern int step_epilog_complete(struct job_record  *job_ptr,
 				step_offset);
 		}
 		rc++;
-		debug2("partitial switch release for %pS, epilog on %s",
+		debug2("partial switch release for %pS, epilog on %s",
 			step_ptr, node_name);
 		switch_g_job_step_part_comp(
 			step_ptr->switch_job, node_name);
@@ -4872,9 +4872,22 @@ extern struct step_record *build_extern_step(struct job_record *job_ptr)
 	return step_ptr;
 }
 
-extern struct step_record *build_batch_step(struct job_record *job_ptr)
+extern struct step_record *build_batch_step(struct job_record *job_ptr_in)
 {
-	struct step_record *step_ptr = _create_step_record(job_ptr, 0);
+	struct job_record *job_ptr;
+	struct step_record *step_ptr;
+
+	if (job_ptr_in->pack_job_id) {
+		job_ptr = find_job_record(job_ptr_in->pack_job_id);
+		if (!job_ptr) {
+			error("%s: hetjob master is corrupt! This should never happen",
+			      __func__);
+			job_ptr = job_ptr_in;
+		}
+	} else
+		job_ptr = job_ptr_in;
+
+	step_ptr = _create_step_record(job_ptr, 0);
 
 	step_ptr->step_layout = fake_slurm_step_layout_create(
 		job_ptr->batch_host, NULL, NULL, 1, 1);

@@ -2194,6 +2194,7 @@ _pick_best_nodes(struct node_set *node_set_ptr, int node_set_size,
 				}
 				list_iterator_destroy(job_iterator);
 				bit_and(avail_bitmap, avail_node_bitmap);
+				bit_and(avail_bitmap, total_bitmap);
 				preemptee_cand = preemptee_candidates;
 			} else
 				preemptee_cand = preemptee_candidates;
@@ -3337,6 +3338,15 @@ extern void launch_prolog(struct job_record *job_ptr)
 	prolog_msg_ptr->cred = slurm_cred_create(slurmctld_config.cred_ctx,
 						 &cred_arg,
 						 SLURM_PROTOCOL_VERSION);
+	if (!prolog_msg_ptr->cred) {
+		error("%s: slurm_cred_create failure for %pJ",
+		      __func__, job_ptr);
+		slurm_free_prolog_launch_msg(prolog_msg_ptr);
+		job_ptr->details->begin_time = time(NULL) + 120;
+		job_complete(job_ptr->job_id, slurmctld_conf.slurm_user_id,
+			     true, false, 0);
+		return;
+	}
 
 	agent_arg_ptr = xmalloc(sizeof(agent_arg_t));
 	agent_arg_ptr->retry = 0;
@@ -3440,7 +3450,7 @@ extern int list_find_feature(void *feature_entry, void *key)
  * IN use_active - if set, then only consider nodes with the identified features
  *	active, otherwise use available features
  * IN/OUT node_bitmap - nodes available for use, clear if unusable
- * OUT has_xor - set if XOR/XAND found in feature expresion
+ * OUT has_xor - set if XOR/XAND found in feature expression
  * RET true if valid, false otherwise
  */
 extern bool valid_feature_counts(struct job_record *job_ptr, bool use_active,
@@ -4104,10 +4114,7 @@ end_node_set:
 		     __func__, job_ptr, job_ptr->part_ptr->name);
 		xfree(node_set_ptr);
 		xfree(job_ptr->state_desc);
-		if (job_ptr->resv_name) {
-			job_ptr->state_reason = WAIT_RESERVATION;
-			rc = ESLURM_NODES_BUSY;
-		} else if ((slurmctld_conf.fast_schedule == 0) &&
+		if ((slurmctld_conf.fast_schedule == 0) &&
 			   (_no_reg_nodes() > 0)) {
 			rc = ESLURM_NODES_BUSY;
 		} else {

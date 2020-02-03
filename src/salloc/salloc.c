@@ -237,10 +237,10 @@ int main(int argc, char **argv)
 		if ((opt.get_user_env_time >= 0) && !env_cache_set) {
 			bool no_env_cache = false;
 			char *sched_params;
-			char *user = uid_to_string(opt.uid);
+			char *user;
 
 			env_cache_set = true;
-			if (xstrcmp(user, "nobody") == 0) {
+			if (!(user = uid_to_string_or_null(opt.uid))) {
 				error("Invalid user id %u: %m",
 				      (uint32_t) opt.uid);
 				exit(error_exit);
@@ -718,7 +718,7 @@ static void _match_job_name(job_desc_msg_t *desc_last, List job_req_list)
 	if (!desc_last)
 		return;
 
-	if (!desc_last->name && command_argv)
+	if (!desc_last->name && command_argv[0])
 		desc_last->name = xstrdup(xbasename(command_argv[0]));
 	name = desc_last->name;
 

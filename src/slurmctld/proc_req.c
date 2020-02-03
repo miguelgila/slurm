@@ -921,7 +921,6 @@ static void _fill_ctld_conf(slurm_ctl_conf_t * conf_ptr)
 		xstrdup(conf->slurmctld_primary_on_prog);
 	conf_ptr->slurmctld_syslog_debug = conf->slurmctld_syslog_debug;
 	conf_ptr->slurmctld_timeout   = conf->slurmctld_timeout;
-	conf_ptr->slurmctld_params    = xstrdup(conf->slurmctld_params);
 	conf_ptr->slurmd_debug        = conf->slurmd_debug;
 	conf_ptr->slurmd_logfile      = xstrdup(conf->slurmd_logfile);
 	conf_ptr->slurmd_params	      = xstrdup(conf->slurmd_params);
@@ -2285,7 +2284,7 @@ static void  _slurm_rpc_epilog_complete(slurm_msg_t *msg,
 		return;
 	}
 
-	/* Only throttle on none composite messages, the lock should
+	/* Only throttle on non-composite messages, the lock should
 	 * already be set earlier. */
 	if (!running_composite) {
 		if (config_update != slurmctld_conf.last_update) {
@@ -3660,7 +3659,7 @@ static void _slurm_rpc_shutdown_controller(slurm_msg_t * msg)
 	if (error_code)
 		;
 	else if (options == 1)
-		info("performing immeditate shutdown without state save");
+		info("performing immediate shutdown without state save");
 	else if (slurmctld_config.shutdown_time)
 		debug2("shutdown RPC issued when already in progress");
 	else {

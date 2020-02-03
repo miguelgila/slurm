@@ -440,6 +440,7 @@ static int  _try_sched(struct job_record *job_ptr, bitstr_t **avail_bitmap,
 						       &preemptee_job_list,
 						       exc_core_bitmap);
 				FREE_NULL_LIST(preemptee_job_list);
+				FREE_NULL_LIST(preemptee_candidates);
 				if ((rc == SLURM_SUCCESS) &&
 				    ((high_start == 0) ||
 				     (high_start < job_ptr->start_time))) {
@@ -508,6 +509,7 @@ static int  _try_sched(struct job_record *job_ptr, bitstr_t **avail_bitmap,
 						       &preemptee_job_list,
 						       exc_core_bitmap);
 				FREE_NULL_LIST(preemptee_job_list);
+				FREE_NULL_LIST(preemptee_candidates);
 				if ((rc == SLURM_SUCCESS) &&
 				    ((low_start == 0) ||
 				     (low_start > job_ptr->start_time))) {
@@ -678,8 +680,13 @@ static void _load_config(void)
 
 	if ((tmp_ptr = xstrcasestr(sched_params, "bf_max_job_test=")))
 		max_backfill_job_cnt = atoi(tmp_ptr + 16);
+	else if ((tmp_ptr = xstrcasestr(sched_params, "max_job_bf="))) {
+		error("Invalid parameter max_job_bf. The option is no longer supported, please use bf_max_job_test instead.");
+		max_backfill_job_cnt = atoi(tmp_ptr + 11);
+	}
 	else
 		max_backfill_job_cnt = 100;
+
 	if (max_backfill_job_cnt < 1 ||
 	    max_backfill_job_cnt > MAX_BF_MAX_JOB_TEST) {
 		error("Invalid SchedulerParameters bf_max_job_test: %d",
@@ -1489,7 +1496,7 @@ static int _attempt_backfill(void)
 	job_queue_rec_t *job_queue_rec;
 	int bb, i, j, node_space_recs, mcs_select = 0;
 	slurmdb_qos_rec_t *qos_ptr = NULL;
-	struct job_record *job_ptr;
+	struct job_record *job_ptr = NULL;
 	struct part_record *part_ptr;
 	uint32_t end_time, end_reserve, deadline_time_limit, boot_time;
 	uint32_t orig_end_time;
@@ -1504,7 +1511,7 @@ static int _attempt_backfill(void)
 	int rc = 0, error_code;
 	int job_test_count = 0, test_time_count = 0, pend_time;
 	bool already_counted, many_rpcs = false;
-	uint32_t reject_array_job_id = 0;
+	struct job_record *reject_array_job = NULL;
 	struct part_record *reject_array_part = NULL;
 	uint32_t start_time;
 	time_t config_update = slurmctld_conf.last_update;
@@ -1553,10 +1560,8 @@ static int _attempt_backfill(void)
 			debug("backfill: no jobs to backfill");
 		FREE_NULL_LIST(job_queue);
 		return 0;
-	} else {
+	} else
 		debug("backfill: %u jobs to backfill", job_test_count);
-		job_test_count = 0;
-	}
 
 	if (backfill_continue)
 		list_for_each(job_list, _clear_job_start_times, NULL);
@@ -1569,6 +1574,8 @@ static int _attempt_backfill(void)
 	slurmctld_diag_stats.bf_queue_len = job_test_count;
 	slurmctld_diag_stats.bf_queue_len_sum += slurmctld_diag_stats.
 						 bf_queue_len;
+	job_test_count = 0;
+
 	slurmctld_diag_stats.bf_last_depth = 0;
 	slurmctld_diag_stats.bf_last_depth_try = 0;
 	slurmctld_diag_stats.bf_when_last_cycle = now;
@@ -1605,6 +1612,9 @@ static int _attempt_backfill(void)
 			prio_reserve;
 		bool get_boot_time = false;
 
+		/* Run some final guaranteed logic after each job iteration */
+		if (job_ptr)
+			fill_array_reasons(job_ptr, reject_array_job);
 		job_queue_rec = (job_queue_rec_t *) list_pop(job_queue);
 		if (!job_queue_rec) {
 			if (debug_flags & DEBUG_FLAG_BACKFILL)
@@ -1856,13 +1866,15 @@ next_task:
 		if (!_job_part_valid(job_ptr, part_ptr))
 			continue;	/* Partition change during lock yield */
 		if ((job_ptr->array_task_id != NO_VAL) || job_ptr->array_recs) {
-			if ((reject_array_job_id == job_ptr->array_job_id) &&
-			    (reject_array_part   == part_ptr))
+			if (reject_array_job &&
+			    (reject_array_job->array_job_id ==
+				job_ptr->array_job_id) &&
+			    (reject_array_part == part_ptr))
 				continue;  /* already rejected array element */
 
 			/* assume reject whole array for now, clear if OK */
-			reject_array_job_id = job_ptr->array_job_id;
-			reject_array_part   = part_ptr;
+			reject_array_job = job_ptr;
+			reject_array_part = part_ptr;
 
 			if (!job_array_start_test(job_ptr))
 				continue;
@@ -2406,8 +2418,10 @@ skip_start:
 				later_start = 0;
 			} else {
 				/* Started this job, move to next one */
-				reject_array_job_id = 0;
-				reject_array_part   = NULL;
+
+				/* Clear assumed rejected array status */
+				reject_array_job = NULL;
+				reject_array_part = NULL;
 
 				/* Update the database if job time limit
 				 * changed and move to next job */
@@ -2617,10 +2631,16 @@ skip_start:
 			job_ptr->part_ptr->bf_data->resv_usage->count++;
 		}
 
-		reject_array_job_id = 0;
-		reject_array_part   = NULL;
-		xfree(job_ptr->sched_nodes);
-		job_ptr->sched_nodes = bitmap2node_name(avail_bitmap);
+		/* Clear assumed rejected array status */
+		reject_array_job = NULL;
+		reject_array_part = NULL;
+
+		if ((orig_start_time == 0) ||
+		    (job_ptr->start_time < orig_start_time)) {
+			/* Can't start earlier in different partition. */
+			xfree(job_ptr->sched_nodes);
+			job_ptr->sched_nodes = bitmap2node_name(avail_bitmap);
+		}
 		bit_not(avail_bitmap);
 		_add_reservation(start_time, end_reserve,
 				 avail_bitmap, node_space, &node_space_recs);
@@ -3717,12 +3737,12 @@ static bool _job_pack_deadlock_test(struct job_record *job_ptr)
 	 */
 	part_iter = list_iterator_create(deadlock_global_list);
 	while ((dl_part_ptr2 = (deadlock_part_struct_t *)list_next(part_iter))){
-		if (dl_part_ptr2 == dl_part_ptr)  /* Current partion, skip it */
+		if (dl_part_ptr2 == dl_part_ptr) /* Current partition, skip it */
 			continue;
 		dl_job_ptr2 = list_find_first(dl_part_ptr2->deadlock_job_list,
 					      _deadlock_part_list_srch,
 					      job_ptr);
-		if (!dl_job_ptr2)   /* Pack job not in this partion, no check */
+		if (!dl_job_ptr2) /* Pack job not in this partition, no check */
 			continue;
 		job_iter = list_iterator_create(dl_part_ptr->deadlock_job_list);
 		while ((dl_job_ptr2 = (deadlock_job_struct_t *)

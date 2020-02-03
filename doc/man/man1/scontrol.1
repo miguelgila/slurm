@@ -274,8 +274,8 @@ The Slurm controller (slurmctld) forwards the request all other daemons
 (slurmd daemon on each compute node). Running jobs continue execution.
 Most configuration parameters can be changed by just running this command,
 however, Slurm daemons should be shutdown and restarted if any of these
-parameters are to be changed: AuthType, BackupAddr, BackupController,
-ControlAddr, ControlMach, PluginDir, StateSaveLocation, SlurmctldPort
+parameters are to be changed: AuthType, ControlMach, PluginDir,
+StateSaveLocation, SlurmctldHost, SlurmctldPort,
 or SlurmdPort. The slurmctld daemon and all slurmd daemons must be
 restarted if nodes are added to or removed from the cluster.
 
@@ -975,6 +975,12 @@ Either a user name or numeric ID (UID), may be specified.
 Set the job's workload characterization key to the specified value.
 
 .TP
+\fIWorkDir\fP=<directory_name>
+Set the job's working directory to the specified value. Note that this may
+only be set for jobs in the PENDING state, and that jobs may fail to launch
+if they rely on relative paths to the originally submitted WorkDir.
+
+.TP
 \fBSPECIFICATIONS FOR SHOW COMMAND, JOBS\fR
 .LP
 
@@ -1196,6 +1202,28 @@ restart of the slurmctld daemon with the \fI\-R\fR option and state files
 preserved or slurmctld's receipt of a SIGHUP.
 Update slurm.conf with any changes meant to be persistent across normal
 restarts of slurmctld or the execution of \fBscontrol reconfig\fR.
+
+.TP
+\fINodeAddr\fP=<node address>
+Name that a node should be referred to in establishing a communications path.
+This name will be used as an argument to the gethostbyname() function for
+identification. If a node range expression is used to designate multiple nodes,
+they must exactly match the entries in the \fINodeName\fP
+(e.g. "NodeName=lx[0\-7] NodeAddr=elx[0\-7]"). \fINodeAddr\fP may also contain
+IP addresses.
+
+.TP
+\fINodeHostname\fP=<node hostname>
+Typically this would be the string that "/bin/hostname \-s" returns.
+It may also be the fully qualified domain name as returned by
+"/bin/hostname \-f" (e.g. "foo1.bar.com"), or any valid domain name associated
+with the host through the host database (/etc/hosts) or DNS, depending on the
+resolver settings. Note that if the short form of the hostname is not used, it
+may prevent use of hostlist expressions (the numeric portion in brackets must be
+at the end of the string). A node range expression can be used to specify a set
+of nodes. If an expression is used, the number of nodes identified by
+\fINodeHostname\fP must be identical to the number of nodes identified by
+\fINodeName\fP.
 
 .TP
 \fIReason\fP=<reason>
@@ -1944,6 +1972,19 @@ Type of entities to show, default is not used.
 \fInolayout\fP
 If not used, only entities with defining the tree are shown.
 With the option, only leaves are shown.
+
+.SH "PERFORMANCE"
+.PP
+Executing \fBscontrol\fR sends a remote procedure call to \fBslurmctld\fR. If
+enough calls from \fBscontrol\fR or other Slurm client commands that send remote
+procedure calls to the \fBslurmctld\fR daemon come in at once, it can result in
+a degradation of performance of the \fBslurmctld\fR daemon, possibly resulting
+in a denial of service.
+.PP
+Do not run \fBscontrol\fR or other Slurm client commands that send remote
+procedure calls to \fBslurmctld\fR from loops in shell scripts or other
+programs. Ensure that programs limit calls to \fBscontrol\fR to the minimum
+necessary for the information you are trying to gather.
 
 .SH "ENVIRONMENT VARIABLES"
 .PP

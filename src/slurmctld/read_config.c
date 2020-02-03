@@ -942,7 +942,7 @@ static int _reset_part_prio(void *x, void *arg)
 static void _sync_part_prio(void)
 {
 	/* reset global value from part list */
-	part_max_priority = 0;
+	part_max_priority = DEF_PART_MAX_PRIORITY;
 	list_for_each(part_list, _set_max_part_prio, NULL);
 	/* renormalize values after finding new max */
 	list_for_each(part_list, _reset_part_prio, NULL);
@@ -1762,7 +1762,7 @@ static void _gres_reconfig(bool reconfig)
 			 */
 			gres_plugin_node_config_load(
 				node_ptr->config_ptr->cpus, node_ptr->name,
-				NULL, NULL, NULL);
+				node_ptr->gres_list, NULL, NULL);
 			gres_plugin_node_config_validate(
 				node_ptr->name, node_ptr->config_ptr->gres,
 				&node_ptr->gres, &node_ptr->gres_list,

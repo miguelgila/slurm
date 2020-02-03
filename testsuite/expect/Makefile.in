@@ -590,6 +590,7 @@ EXTRA_DIST = \
 	inc3.11.8			\
 	inc3.11.9			\
 	inc3.11.10			\
+	inc3.11.11			\
 	test3.12			\
 	test3.13			\
 	test3.14			\
@@ -639,6 +640,7 @@ EXTRA_DIST = \
 	test6.13.prog.c			\
 	test6.14			\
 	test6.15			\
+	test6.15.prog.c			\
 	test6.16			\
 	test6.17			\
 	test7.1				\

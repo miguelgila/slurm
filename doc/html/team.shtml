@@ -22,13 +22,14 @@ Lead Slurm developers are:
 <li>Marcin Stolarek (SchedMD)</li>
 <li>Chad Vizino (SchedMD)</li>
 <li>Tim Wickberg (SchedMD)</li>
+<li>Douglas Wightman (SchedMD)</li>
 </ul>
 
 <p>Slurm contributors include:</p>
 <ul>
 <!-- MAJOR CONTRIBUTING ORGANIZATIONS, PLEASE KEEP IN ALPHABETICAL ORDER -->
 <li><a href="http://www.bsc.es">Barcelona Supercomputing Center</a></li>
-<li><a href="http://www.bull.com">Bull</a></li>
+<li><a href="http://www.bull.com">Bull/Atos</a></li>
 <li><a href="http://www.cea.fr">CEA</a></li>
 <li><a href="http://www.cray.com">Cray</a></li>
 <li><a href="http://www.fhcrc.org">Fred Hutchinson Cancer Research Center</a></li>
@@ -242,6 +243,7 @@ Lead Slurm developers are:
 <li>Uwe Sauter (High Performance Computing Center Stuttgart, Germany)</li>
 <li>Chris Scheller (University of Michigan)</li>
 <li>Rod Schultz (Bull)</li>
+<li>Josh Schwartz (Cray)</li>
 <li>Samuel Senoner (Vienna University of Technology, Austria)</li>
 <li>Tim Shaw (SchedMD)</li>
 <li>David Singleton</li>
@@ -262,6 +264,7 @@ Lead Slurm developers are:
 <li>Adam Todorski (Rensselaer Polytechnic Institute)</li>
 <li>Giovanni Torres (National Institutes of Health)</li>
 <li>Stephen Trofinoff (Swiss National Supercomputing Centre)</li>
+<li>Robert Tweedy (Emory University)</li>
 <br>
 <li>Garrison Vaughan</li>
 <br>

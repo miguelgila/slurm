@@ -1592,9 +1592,6 @@ static int _parse_partitionname(void **dest, slurm_parser_enum_t type,
 		    !s_p_get_uint16(&p->priority_job_factor,
 				    "PriorityJobFactor", dflt)) {
 			p->priority_job_factor = 1;
-		} else if (p->priority_job_factor == 0) {
-			error("Bad value for PriorityJobFactor: 0");
-			p->priority_job_factor = 1;
 		}
 
 		if (!s_p_get_uint16(&p->priority_tier, "PriorityTier", tbl) &&
@@ -3753,6 +3750,10 @@ _validate_and_set_defaults(slurm_ctl_conf_t *conf, s_p_hashtbl_t *hashtbl)
 
 	if (!s_p_get_uint16(&conf->fast_schedule, "FastSchedule", hashtbl))
 		conf->fast_schedule = DEFAULT_FAST_SCHEDULE;
+	else if (conf->fast_schedule == 0 && run_in_daemon("slurmctld,slurmd"))
+		error("FastSchedule will be removed in 20.02, as will the FastSchedule=0 functionality. Please consider removing this from your configuration now.");
+	else if (conf->fast_schedule == 2 && run_in_daemon("slurmctld,slurmd"))
+		error("FastSchedule will be removed in 20.02. The FastSchedule=2 functionality will be available through the new SlurmdParameters=config_overrides option. Please consider changing your configuration now.");
 
 	(void) s_p_get_string(&conf->fed_params, "FederationParameters",
 			      hashtbl);
@@ -3788,6 +3789,7 @@ _validate_and_set_defaults(slurm_ctl_conf_t *conf, s_p_hashtbl_t *hashtbl)
 			     "JobAcctGatherParams", hashtbl);
 
 	conf->job_acct_oom_kill = false;
+	bool param_found = false;
 	if (conf->job_acct_gather_params) {
 		char *save_ptr = NULL;
 		char *tmp = xstrdup(conf->job_acct_gather_params);
@@ -3796,11 +3798,30 @@ _validate_and_set_defaults(slurm_ctl_conf_t *conf, s_p_hashtbl_t *hashtbl)
 		while (tok) {
 			if (xstrcasecmp(tok, "OverMemoryKill") == 0) {
 				conf->job_acct_oom_kill = true;
+				param_found = true;
 				break;
 			}
 			tok = strtok_r(NULL, ",", &save_ptr);
 		}
 		xfree(tmp);
+	}
+
+	if (s_p_get_string(&temp_str, "MemLimitEnforce", hashtbl)) {
+		if (run_in_daemon("slurmctld,slurmd"))
+			error("MemLimitEnforce will be removed in 20.02. The MemLimitEnforce=yes functionality is available through the JobAcctGatherParams=OverMemoryKill which will be set now. Please consider changing your configuration now.");
+		if (xstrncasecmp(temp_str, "yes", 2) == 0) {
+			conf->job_acct_oom_kill = true;
+			if (conf->job_acct_gather_params && !param_found) {
+				char *new_j_params;
+				xstrfmtcat(new_j_params, "%s,OverMemoryKill",
+					   conf->job_acct_gather_params);
+				xfree(conf->job_acct_gather_params);
+				conf->job_acct_gather_params = new_j_params;
+			} else if (!conf->job_acct_gather_params)
+				xstrfmtcat(conf->job_acct_gather_params,
+					   "OverMemoryKill");
+		}
+		xfree(temp_str);
 	}
 
 	if (!s_p_get_string(&conf->job_ckpt_dir, "JobCheckpointDir", hashtbl))
@@ -4789,6 +4810,8 @@ _validate_and_set_defaults(slurm_ctl_conf_t *conf, s_p_hashtbl_t *hashtbl)
 	(void) s_p_get_string(&conf->slurmd_logfile, "SlurmdLogFile", hashtbl);
 
 	(void) s_p_get_string(&conf->slurmd_params, "SlurmdParameters", hashtbl);
+	if (xstrcasestr(conf->slurmd_params, "config_overrides"))
+		conf->fast_schedule = 2;
 
 	if (!s_p_get_string(&conf->slurmd_pidfile, "SlurmdPidFile", hashtbl))
 		conf->slurmd_pidfile = xstrdup(DEFAULT_SLURMD_PIDFILE);

@@ -32,15 +32,21 @@ Restrict the scancel operation to jobs under this charge account.
 
 .TP
 \fB\-b\fR, \fB\-\-batch\fR
-Signal only the batch step (the shell script), but not any other steps
-nor any children of the shell script. This is useful when the shell
-script has to trap the signal and take some application defined action.
-This is not applicable if \fIstep_id\fR is specified.
+By default, signals other than SIGKILL are not sent to the batch step (the shell
+script). With this option \fBscancel\fR signals only the batch step, but not
+any other steps.
+This is useful when the shell script has to trap the signal and take some
+application defined action.
+Note that most shells cannot handle signals while a command is running (child
+process of the batch step), the shell use to wait wait until the command ends to
+then handle the signal. Children of the batch step are not signaled with this
+option, use \fB\-f\fR, \fB\-\-full\fR instead.
+NOTE: If used with \fB\-f\fR, \fB\-\-full\fR, this option ignored.
+NOTE: This option is not applicable if \fIstep_id\fR is specified.
 NOTE: The shell itself may exit upon receipt of many signals.
 You may avoid this by explicitly trap signals within the shell
 script (e.g. "trap <arg> <signals>"). See the shell documentation
 for details.
-Also see the \fB\-f\fR, \fB\-\-full\fR option.
 
 .TP
 \fB-\-ctld\fR
@@ -51,10 +57,15 @@ Cray ALPS computers) or when the \fB\-\-clusters\fR option is used.
 
 .TP
 \fB\-f\fR, \fB\-\-full\fR
-Signal all steps associated with the job including any batch step (the shell
-script plus all of its child processes).
-By default, signals other than SIGKILL are not sent to the batch step.
-Also see the \fB\-b\fR, \fB\-\-batch\fR option.
+By default, signals other than SIGKILL are not sent to the batch step (the shell
+script). With this option \fBscancel\fR signals also the batch script and its
+children processes.
+Most shells cannot handle signals while a command is running (child process of
+the batch step), the shell use to wait until the command ends to then
+handle the signal. Unlike \fB\-b\fR, \fB\-\-batch\fR, children of the batch step
+are also signaled with this option.
+NOTE: srun steps are also children of the batch step, so steps are also signaled
+with this option.
 
 .TP
 \fB\-\-help\fR
@@ -165,6 +176,19 @@ the shell may forward the signal.
 When \fB\-\-batch\fR is not used but \fB\-\-signal\fR is used,
 then all job steps will be signaled, but the batch script itself
 will not be signaled.
+
+.SH "PERFORMANCE"
+.PP
+Executing \fBscancel\fR sends a remote procedure call to \fBslurmctld\fR. If
+enough calls from \fBscancel\fR or other Slurm client commands that send remote
+procedure calls to the \fBslurmctld\fR daemon come in at once, it can result in
+a degradation of performance of the \fBslurmctld\fR daemon, possibly resulting
+in a denial of service.
+.PP
+Do not run \fBscancel\fR or other Slurm client commands that send remote
+procedure calls to \fBslurmctld\fR from loops in shell scripts or other
+programs. Ensure that programs limit calls to \fBscancel\fR to the minimum
+necessary for the information you are trying to gather.
 
 .SH "ENVIRONMENT VARIABLES"
 .PP

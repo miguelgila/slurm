@@ -72,6 +72,7 @@
 #include "src/common/parse_time.h"
 #include "src/common/power.h"
 #include "src/common/slurm_accounting_storage.h"
+#include "src/common/slurm_auth.h"
 #include "src/common/slurm_jobcomp.h"
 #include "src/common/slurm_mcs.h"
 #include "src/common/slurm_priority.h"
@@ -1906,6 +1907,7 @@ static int _load_job_state(Buf buffer, uint16_t protocol_version)
 		}
 		safe_unpack32(&job_ptr->bit_flags, buffer);
 		job_ptr->bit_flags &= ~BACKFILL_TEST;
+		job_ptr->bit_flags |= JOB_MEM_SET;
 		safe_unpackstr_xmalloc(&tres_alloc_str,
 				       &name_len, buffer);
 		safe_unpackstr_xmalloc(&tres_fmt_alloc_str,
@@ -2133,6 +2135,7 @@ static int _load_job_state(Buf buffer, uint16_t protocol_version)
 		}
 		safe_unpack32(&job_ptr->bit_flags, buffer);
 		job_ptr->bit_flags &= ~BACKFILL_TEST;
+		job_ptr->bit_flags |= JOB_MEM_SET;
 		safe_unpackstr_xmalloc(&tres_alloc_str,
 				       &name_len, buffer);
 		safe_unpackstr_xmalloc(&tres_fmt_alloc_str,
@@ -3040,7 +3043,8 @@ extern void build_array_str(struct job_record *job_ptr)
 	 * starting at once) instead of just ever so often.
 	 */
 
-	job_ptr->job_state |= JOB_UPDATE_DB;
+	if (job_ptr->db_index)
+		job_ptr->job_state |= JOB_UPDATE_DB;
 }
 
 /* Return true if ALL tasks of specific array job ID are complete */
@@ -4934,9 +4938,14 @@ extern int job_allocate(job_desc_msg_t * job_specs, int immediate,
 		else
 			defer_sched = 0;
 		if ((tmp_ptr = xstrcasestr(sched_params, "delay_boot="))) {
+			char *tmp_comma;
+			if ((tmp_comma = xstrstr(tmp_ptr, ",")))
+				*tmp_comma = '\0';
 			i = time_str2secs(tmp_ptr + 11);
 			if (i != NO_VAL)
 				delay_boot = i;
+			if (tmp_comma)
+				*tmp_comma = ',';
 		}
 		bf_min_age_reserve = 0;
 		if ((tmp_ptr = xstrcasestr(sched_params,
@@ -5017,16 +5026,14 @@ extern int job_allocate(job_desc_msg_t * job_specs, int immediate,
 	else
 		too_fragmented = false;
 
-	if (defer_sched == 1)
-		too_fragmented = true;
-
-	if (independent && (!too_fragmented))
+	if (independent && (!too_fragmented) && !defer_sched)
 		top_prio = _top_priority(job_ptr, job_specs->pack_job_offset);
 	else
 		top_prio = true;	/* don't bother testing,
 					 * it is not runable anyway */
 
-	if (immediate && (too_fragmented || (!top_prio) || (!independent))) {
+	if (immediate &&
+	    (too_fragmented || (!top_prio) || (!independent) || defer_sched)) {
 		job_ptr->job_state  = JOB_FAILED;
 		job_ptr->exit_code  = 1;
 		job_ptr->state_reason = FAIL_BAD_CONSTRAINTS;
@@ -5047,12 +5054,18 @@ extern int job_allocate(job_desc_msg_t * job_specs, int immediate,
 			       slurm_strerror(ESLURM_FRAGMENTATION));
 			return ESLURM_FRAGMENTATION;
 		}
-		else {
+		else if (!top_prio) {
 			debug2("%s: setting %pJ to \"%s\" because it's not top priority (%s)",
 			       __func__, job_ptr,
 			       job_reason_string(job_ptr->state_reason),
 			       slurm_strerror(ESLURM_NOT_TOP_PRIORITY));
 			return ESLURM_NOT_TOP_PRIORITY;
+		} else {
+			debug2("%s: setting %pJ to \"%s\" due to SchedulerParameters=defer (%s)",
+			       __func__, job_ptr,
+			       job_reason_string(job_ptr->state_reason),
+			       slurm_strerror(ESLURM_CAN_NOT_START_IMMEDIATELY));
+			return ESLURM_CAN_NOT_START_IMMEDIATELY;
 		}
 	}
 
@@ -5078,7 +5091,7 @@ extern int job_allocate(job_desc_msg_t * job_specs, int immediate,
 
 	no_alloc = test_only || too_fragmented || _has_deadline(job_ptr) ||
 		   (!top_prio) || (!independent) || !avail_front_end(job_ptr) ||
-		   (job_specs->pack_job_offset != NO_VAL);
+		   (job_specs->pack_job_offset != NO_VAL) || defer_sched;
 
 	no_alloc = no_alloc || (bb_g_job_test_stage_in(job_ptr, no_alloc) != 1);
 
@@ -5872,10 +5885,7 @@ _signal_batch_job(struct job_record *job_ptr, uint16_t signal, uint16_t flags)
 	signal_tasks_msg->job_id      = job_ptr->job_id;
 	signal_tasks_msg->job_step_id = NO_VAL;
 
-	if (flags == KILL_FULL_JOB ||
-	    flags == KILL_JOB_BATCH ||
-	    flags == KILL_STEPS_ONLY)
-		signal_tasks_msg->flags = flags;
+	signal_tasks_msg->flags = flags;
 	signal_tasks_msg->signal = signal;
 
 	agent_args->msg_args = signal_tasks_msg;
@@ -11958,6 +11968,31 @@ static int _update_job(struct job_record *job_ptr, job_desc_msg_t * job_specs,
 			int i, i_first, i_last;
 			struct node_record *node_ptr;
 			bitstr_t *rem_nodes;
+
+			/*
+			 * They requested a new list of nodes for the job. If
+			 * the batch host isn't in this list, then deny this
+			 * request.
+			 */
+			if (job_ptr->batch_flag) {
+				bitstr_t *batch_host_bitmap;
+				if (node_name2bitmap(job_ptr->batch_host, false,
+						     &batch_host_bitmap))
+					error("%s: Invalid batch host %s for %pJ; this should never happen",
+					      __func__, job_ptr->batch_host,
+					      job_ptr);
+				else if (!bit_overlap(batch_host_bitmap,
+						      new_req_bitmap)) {
+					error("%s: Batch host %s for %pJ is not in the requested node list %s. You cannot remove the batch host from a job when resizing.",
+					      __func__, job_ptr->batch_host,
+					      job_ptr, job_specs->req_nodes);
+					error_code = ESLURM_INVALID_NODE_NAME;
+					bit_free(batch_host_bitmap);
+					goto fini;
+				} else
+					bit_free(batch_host_bitmap);
+			}
+
 			sched_info("%s: setting nodes to %s for %pJ",
 				   __func__, job_specs->req_nodes, job_ptr);
 			job_pre_resize_acctg(job_ptr);
@@ -12970,10 +13005,6 @@ static int _update_job(struct job_record *job_ptr, job_desc_msg_t * job_specs,
 				   __func__, entity,
 				   (job_specs->pn_min_memory & (~MEM_PER_CPU)),
 				   job_ptr);
-			sched_info("%s: setting min_memory_%s to %"PRIu64
-				   " for job_id %u", __func__, entity,
-				   (job_specs->pn_min_memory & (~MEM_PER_CPU)),
-				   job_ptr->job_id);
 			/*
 			 * Always use the acct_policy_limit_set.*
 			 * since if set by a super user it be set correctly
@@ -13213,6 +13244,23 @@ static int _update_job(struct job_record *job_ptr, job_desc_msg_t * job_specs,
 		}
 	}
 
+	if (job_specs->work_dir && detail_ptr &&
+	    !xstrcmp(job_specs->work_dir, detail_ptr->work_dir)) {
+		sched_debug("%s: new work_dir identical to old work_dir %s",
+			    __func__, job_specs->work_dir);
+	} else if (job_specs->work_dir) {
+		if (!IS_JOB_PENDING(job_ptr)) {
+			error_code = ESLURM_JOB_NOT_PENDING;
+			goto fini;
+		} else if (detail_ptr) {
+			xfree(detail_ptr->work_dir);
+			detail_ptr->work_dir = xstrdup(job_specs->work_dir);
+			sched_info("%s: setting work_dir to %s for %pJ",
+				   __func__, detail_ptr->work_dir, job_ptr);
+			update_accounting = true;
+		}
+	}
+
 	if (job_specs->std_out && detail_ptr &&
 	    !xstrcmp(job_specs->std_out, detail_ptr->std_out)) {
 		sched_debug("%s: new std_out identical to old std_out %s",
@@ -13339,20 +13387,49 @@ static int _update_job(struct job_record *job_ptr, job_desc_msg_t * job_specs,
 			error_code = ESLURM_NOT_SUPPORTED;
 			goto fini;
 		} else {
-			int i, i_first, i_last, total;
+			int i, i_first, i_last, total = 0;
 			struct node_record *node_ptr;
-			bitstr_t *rem_nodes;
+			bitstr_t *rem_nodes, *tmp_nodes;
 			sched_info("%s: set node count to %u for %pJ", __func__,
 				   job_specs->min_nodes, job_ptr);
 			job_pre_resize_acctg(job_ptr);
-			i_first = bit_ffs(job_ptr->node_bitmap);
+
+			/*
+			 * Don't remove the batch host from the job. The batch
+			 * host isn't guaranteed to be the first bit set in
+			 * job_ptr->node_bitmap because the batch host can be
+			 * selected with the --batch and --constraint sbatch
+			 * flags.
+			 */
+			tmp_nodes = bit_copy(job_ptr->node_bitmap);
+			if (job_ptr->batch_host) {
+				bitstr_t *batch_host_bitmap;
+				if (node_name2bitmap(job_ptr->batch_host, false,
+						     &batch_host_bitmap))
+					error("%s: Invalid batch host %s for %pJ; this should never happen",
+					      __func__, job_ptr->batch_host,
+					      job_ptr);
+				else {
+					bit_and_not(tmp_nodes,
+						    batch_host_bitmap);
+					bit_free(batch_host_bitmap);
+					/*
+					 * Set total to 1 since we're
+					 * guaranteeing that we won't remove the
+					 * batch host.
+					 */
+					total = 1;
+				}
+			}
+
+			i_first = bit_ffs(tmp_nodes);
 			if (i_first >= 0)
-				i_last  = bit_fls(job_ptr->node_bitmap);
+				i_last  = bit_fls(tmp_nodes);
 			else
 				i_last = -2;
-			rem_nodes = bit_alloc(bit_size(job_ptr->node_bitmap));
-			for (i = i_first, total = 0; i <= i_last; i++) {
-				if (!bit_test(job_ptr->node_bitmap, i))
+			rem_nodes = bit_alloc(bit_size(tmp_nodes));
+			for (i = i_first; i <= i_last; i++) {
+				if (!bit_test(tmp_nodes, i))
 					continue;
 				if (++total <= job_specs->min_nodes)
 					continue;
@@ -13369,6 +13446,7 @@ static int _update_job(struct job_record *job_ptr, job_desc_msg_t * job_specs,
 				excise_node_from_job(job_ptr, node_ptr);
 			}
 			bit_free(rem_nodes);
+			bit_free(tmp_nodes);
 			(void) gs_job_start(job_ptr);
 			job_post_resize_acctg(job_ptr);
 			sched_info("%s: set nodes to %s for %pJ",
@@ -13537,6 +13615,19 @@ static int _update_job(struct job_record *job_ptr, job_desc_msg_t * job_specs,
 	} else if ((job_ptr->state_reason != WAIT_HELD)
 		   && (job_ptr->state_reason != WAIT_HELD_USER)
 		   && (job_ptr->state_reason != WAIT_RESV_DELETED)
+		   /*
+		    * A job update can come while the prolog is running.
+		    * Don't change state_reason if the prolog is running.
+		    * _is_prolog_finished() relies on state_reason==WAIT_PROLOG
+		    * to know if the prolog is running. If we change it here,
+		    * then slurmctld will think that the prolog isn't running
+		    * anymore and _slurm_rpc_job_ready will tell srun that the
+		    * prolog is done even if it isn't. Then srun can launch a
+		    * job step before the prolog is done, which breaks the
+		    * behavior of PrologFlags=alloc and means that the job step
+		    * could launch before the extern step sets up x11.
+		    */
+		   && (job_ptr->state_reason != WAIT_PROLOG)
 		   && (job_ptr->state_reason != WAIT_MAX_REQUEUE)) {
 		job_ptr->state_reason = WAIT_NO_REASON;
 		xfree(job_ptr->state_desc);
@@ -13819,11 +13910,17 @@ fini:
 extern int update_job(slurm_msg_t *msg, uid_t uid, bool send_msg)
 {
 	job_desc_msg_t *job_specs = (job_desc_msg_t *) msg->data;
+	char *hostname = g_slurm_auth_get_host(msg->auth_cred);
 	struct job_record *job_ptr;
 	int rc;
 
 	xfree(job_specs->job_id_str);
 	xstrfmtcat(job_specs->job_id_str, "%u", job_specs->job_id);
+
+	if (hostname) {
+		xfree(job_specs->alloc_node);
+		job_specs->alloc_node = hostname;
+	}
 
 	job_ptr = find_job_record(job_specs->job_id);
 	if (job_ptr == NULL) {
@@ -13831,6 +13928,10 @@ extern int update_job(slurm_msg_t *msg, uid_t uid, bool send_msg)
 		     __func__, job_specs->job_id);
 		rc = ESLURM_INVALID_JOB_ID;
 	} else {
+		if (job_ptr->array_recs && job_ptr->array_recs->task_id_bitmap)
+			job_specs->array_bitmap =
+				bit_copy(job_ptr->array_recs->task_id_bitmap);
+
 		rc = _update_job(job_ptr, job_specs, uid);
 	}
 	if (send_msg && rc != ESLURM_JOB_SETTING_DB_INX)
@@ -13853,6 +13954,7 @@ extern int update_job_str(slurm_msg_t *msg, uid_t uid)
 
 	slurm_msg_t resp_msg;
 	job_desc_msg_t *job_specs = (job_desc_msg_t *) msg->data;
+	char *hostname = g_slurm_auth_get_host(msg->auth_cred);
 	struct job_record *job_ptr, *new_job_ptr, *pack_job;
 	ListIterator iter;
 	long int long_id;
@@ -13868,6 +13970,12 @@ extern int update_job_str(slurm_msg_t *msg, uid_t uid)
 	return_code_msg_t rc_msg;
 
 	job_id_str = job_specs->job_id_str;
+
+	if (hostname) {
+		xfree(job_specs->alloc_node);
+		job_specs->alloc_node = hostname;
+
+	}
 
 	if (max_array_size == NO_VAL)
 		max_array_size = slurmctld_conf.max_array_sz;
@@ -13911,6 +14019,9 @@ extern int update_job_str(slurm_msg_t *msg, uid_t uid)
 		if (job_ptr && job_ptr->array_recs) {
 			/* This is a job array */
 			job_ptr_done = job_ptr;
+			if (job_ptr->array_recs->task_id_bitmap)
+				job_specs->array_bitmap = bit_copy(
+					job_ptr->array_recs->task_id_bitmap);
 			rc2 = _update_job(job_ptr, job_specs, uid);
 			if (rc2 == ESLURM_JOB_SETTING_DB_INX) {
 				rc = rc2;
@@ -13997,17 +14108,15 @@ extern int update_job_str(slurm_msg_t *msg, uid_t uid)
 		} else if (bit_super_set(job_ptr->array_recs->task_id_bitmap,
 					 array_bitmap)) {
 			/* Update the record with all pending tasks */
-			tmp_bitmap =
+			job_specs->array_bitmap =
 				bit_copy(job_ptr->array_recs->task_id_bitmap);
 			rc2 = _update_job(job_ptr, job_specs, uid);
 			if (rc2 == ESLURM_JOB_SETTING_DB_INX) {
-				FREE_NULL_BITMAP(tmp_bitmap);
 				rc = rc2;
 				goto reply;
 			}
 			_resp_array_add(&resp_array, job_ptr, rc2);
-			bit_and_not(array_bitmap, tmp_bitmap);
-			FREE_NULL_BITMAP(tmp_bitmap);
+			bit_and_not(array_bitmap, job_specs->array_bitmap);
 		} else {
 			/* Need to split out tasks to separate job records */
 			tmp_bitmap = bit_copy(job_ptr->array_recs->
@@ -15639,9 +15748,9 @@ static void _signal_job(struct job_record *job_ptr, int signal, uint16_t flags)
 	 * Here if we aren't signaling the full job we always only want to
 	 * signal all other steps.
 	 */
-	if (flags == KILL_FULL_JOB ||
-	    flags == KILL_JOB_BATCH ||
-	    flags == KILL_STEPS_ONLY)
+	if ((flags & KILL_FULL_JOB) ||
+	    (flags & KILL_JOB_BATCH) ||
+	    (flags & KILL_STEPS_ONLY))
 		signal_job_msg->flags = flags;
 	else
 		signal_job_msg->flags = KILL_STEPS_ONLY;
@@ -18110,7 +18219,8 @@ extern struct job_record *job_array_post_sched(struct job_record *job_ptr)
 		 * leaving the other orphaned.  Setting the job_state
 		 * sets things up so the db_index isn't lost but the
 		 * start message is still sent to get the desired behavior. */
-		job_ptr->job_state |= JOB_UPDATE_DB;
+		if (job_ptr->db_index)
+			job_ptr->job_state |= JOB_UPDATE_DB;
 
 		/* If job is requeued, it will already be in the hash table */
 		if (!find_job_array_rec(job_ptr->array_job_id,

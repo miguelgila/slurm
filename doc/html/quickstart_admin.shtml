@@ -110,7 +110,7 @@ present. Build dependencies for various plugins and commands are denoted below:
 <li> <b>IPMI Engergy Consumption</b> The <i>acct_gather_energy/ipmi</i>
 		accouting plugin will be built if the <i>freeimpi</i>
 		development library is present.</li>
-<li> <b>InfiniBand Accounting</b> The <i>acct_gather_infiniband/ofed</i>
+<li> <b>InfiniBand Accounting</b> The <i>acct_gather_interconnect/ofed</i>
 		InfiniBand accounting plugin will be built if the
 		<i>libibmad</i> and <i>libibumad</i> development libraries are
 		present.</li>
@@ -253,7 +253,8 @@ responsiveness, the transition back and forth should go undetected.</p>
 <p>Prior to 18.08, Slurm used the <a href="slurm.conf.html#OPT_BackupAddr">
 &quot;BackupAddr&quot;</a> and <a href="slurm.conf.html#OPT_BackupController">
 &quot;BackupController&quot;</a> parameters for High Availability. These
-parameters still work, but will be deprecated at some point in the future.
+parameters have been deprecated and are replaced by
+<a href="slurm.conf.html#OPT_SlurmctldHost">&quot;SlurmctldHost&quot;</a>.
 Also see <a href="slurm.conf.html#OPT_SlurmctldPrimaryOnProg">&quot;
 SlurmctldPrimaryOnProg&quot;</a> and
 <a href="slurm.conf.html#OPT_SlurmctldPrimaryOffProg">&quot;
@@ -429,7 +430,6 @@ SlurmctldHost=mcrj(12.34.56.79)
 #
 AuthType=auth/munge
 Epilog=/usr/local/slurm/etc/epilog
-FastSchedule=1
 JobCompLoc=/var/tmp/jette/slurm.job.log
 JobCompType=jobcomp/filetxt
 JobCredentialPrivateKey=/usr/local/etc/slurm.key
@@ -641,6 +641,22 @@ If the database contains a large number of entries, <b>the SlurmDBD daemon
 may require tens of minutes to update the database and be unresponsive
 during this time interval</b>.</p>
 
+<p>Before upgrading SlurmDBD <b>it is strongly recommended to make a backup of
+the database</b>. When using mysqldump, the default behavior is to lock the
+tables, which can cause issues if SlurmDBD is still trying to send updates to
+the database. To avoid locking the tables we recommend you use the
+<b>--single-transaction</b> flag with mysqldump. This will dump a consistent
+state of the database without blocking any applications. Note that in order for
+this flag to have the desired effect you must be using the InnoDB storage
+engine (specified by default when Slurm automatically creates any table).
+The <b>--single-transaction</b> flag permits a live logical backup (and is thus
+useful for periodic backups while in production). When upgrading Slurm, it is
+recommended to first stop the SlurmDBD daemon and then dump the database using
+mysqldump before proceeding with the upgrade, as stated in the upgrade guide a
+few paragraphs below. Note that requests intended for SlurmDBD from Slurmctld
+will be queued while SlurmDBD is down, but the queue size is limited and you
+should monitor the DBD Agent Queue size with the <b>sdiag</b> command.</p>
+
 <p>The slurmctld daemon must also be upgraded before or at the same time as
 the slurmd daemons on the compute nodes.
 Generally, upgrading Slurm on all of the login and compute nodes is recommended,
@@ -728,6 +744,6 @@ cd /usr/ports/sysutils/slurm-wlm && make install
 typical compute nodes.  Installing from source allows the user to enable
 options such as mysql and gui tools via a configuration menu.</p>
 
-<p style="text-align:center;">Last modified 26 April 2019</p>
+<p style="text-align:center;">Last modified 30 January 2020</p>
 
 <!--#include virtual="footer.txt"-->

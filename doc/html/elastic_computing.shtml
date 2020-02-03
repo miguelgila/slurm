@@ -56,7 +56,7 @@ be placed in a DOWN state and the job requesting the node will be requeued.
 If the node isn't actually rebooted (i.e. when multiple-slurmd is configured)
 starting slurmd with "-b" option might be useful.
 <dt><b>SlurmctldParameters=cloud_dns</b>
-<dd>By default, Slurm expects that the network addresses for cloud nodes won't
+<dd>By default, Slurm expects that the network addresses for cloud nodes
 won't be known until creation of the node and that Slurm will be notified of
 the node's address (e.g. scontrol update nodename=&lt;name&gt;
 nodeaddr=&lt;addr&gt;). Since Slurm communications rely on the node
@@ -76,8 +76,8 @@ provisioned from cloud.
 <dd>The program executed when a node is no longer required and can be
 relinquished to the cloud.
 <dt><b>SuspendTime</b>
-<dd>The time interval that a node will be left idle before a request is made to
-relinquish it. Units are seconds.
+<dd>The time interval that a node will be left idle or down before a request is
+made to relinquish it. Units are in seconds.
 <dt><b>TCPTimeout</b>
 <dd>Time permitted for TCP connections to be established. This value may need
 to be increased from the default (2 seconds) to account for latency between
@@ -153,7 +153,7 @@ Note that configuration file will generally be identical on all nodes and not
 include NodeAddr or NodeHostname configuration parameters for any nodes in the
 cloud.
 Slurm commands executed on this node only need to communicate with the
-slurmctld daemon on the ControlMachine.
+slurmctld daemon on the SlurmctldHost.
 <li>Notify the slurmctld daemon of the node's hostname and network address:<br>
 <i>scontrol update nodename=ec0 nodeaddr=123.45.67.89 nodehostname=whatever</i><br>
 Note that the node address and hostname information set by the scontrol command
@@ -188,6 +188,6 @@ expands (adds resources).</li>
 </ul>
 
 
-<p style="text-align:center;">Last modified 29 May 2019</p>
+<p style="text-align:center;">Last modified 11 November 2019</p>
 
 <!--#include virtual="footer.txt"-->
